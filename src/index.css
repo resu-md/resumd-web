@@ -1,0 +1,161 @@
+@import "tailwindcss";
+
+@theme {
+    /* System Colors */
+    --color-red: var(--ios-red);
+    --color-orange: var(--ios-orange);
+    --color-yellow: var(--ios-yellow);
+    --color-green: var(--ios-green);
+    --color-mint: var(--ios-mint);
+    --color-teal: var(--ios-teal);
+    --color-cyan: var(--ios-cyan);
+    --color-blue: var(--ios-blue);
+    --color-indigo: var(--ios-indigo);
+    --color-purple: var(--ios-purple);
+    --color-pink: var(--ios-pink);
+    --color-brown: var(--ios-brown);
+
+    /* Grays */
+    --color-gray: var(--ios-gray);
+    --color-gray2: var(--ios-gray2);
+    --color-gray3: var(--ios-gray3);
+    --color-gray4: var(--ios-gray4);
+    --color-gray5: var(--ios-gray5);
+    --color-gray6: var(--ios-gray6);
+    --color-black: var(--ios-black);
+    --color-white: var(--ios-white);
+
+    /* Backgrounds (Base) */
+    --color-system-primary: var(--ios-bg-primary);
+    --color-system-secondary: var(--ios-bg-secondary);
+    --color-system-tertiary: var(--ios-bg-tertiary);
+
+    /* Backgrounds (Grouped) */
+    --color-system-grouped-primary: var(--ios-bg-grouped-primary);
+    --color-system-grouped-secondary: var(--ios-bg-grouped-secondary);
+    --color-system-grouped-tertiary: var(--ios-bg-grouped-tertiary);
+
+    /* Labels (Text Colors) */
+    --color-label-primary: var(--ios-label-primary);
+    --color-label-secondary: var(--ios-label-secondary);
+    --color-label-tertiary: var(--ios-label-tertiary);
+    --color-label-quaternary: var(--ios-label-quaternary);
+
+    /* Fills (UI Elements) */
+    --color-fill-primary: var(--ios-fill-primary);
+    --color-fill-secondary: var(--ios-fill-secondary);
+    --color-fill-tertiary: var(--ios-fill-tertiary);
+    --color-fill-quaternary: var(--ios-fill-quaternary);
+
+    /* Separators */
+    --color-separator: var(--ios-separator);
+    --color-separator-opaque: var(--ios-separator-opaque);
+}
+
+:root {
+    /* System Colors */
+    --ios-red: #ff383c;
+    --ios-orange: #ff8d28;
+    --ios-yellow: #ffcc00;
+    --ios-green: #34c759;
+    --ios-mint: #00c8b3;
+    --ios-teal: #00c3d0;
+    --ios-cyan: #00c0e8;
+    --ios-blue: #0088ff;
+    --ios-indigo: #6155f5;
+    --ios-purple: #cb30e0;
+    --ios-pink: #ff2d55;
+    --ios-brown: #ac7f5e;
+
+    /* Grays */
+    --ios-gray: #8e8e93;
+    --ios-gray2: #aeaeb2;
+    --ios-gray3: #c7c7cc;
+    --ios-gray4: #d1d1d6;
+    --ios-gray5: #e5e5ea;
+    --ios-gray6: #f2f2f7;
+    --ios-black: #000000;
+    --ios-white: #ffffff;
+
+    /* Backgrounds */
+    --ios-bg-primary: #ffffff;
+    --ios-bg-secondary: #f2f2f7;
+    --ios-bg-tertiary: #ffffff;
+
+    /* Backgrounds Grouped */
+    --ios-bg-grouped-primary: #f2f2f7;
+    --ios-bg-grouped-secondary: #ffffff;
+    --ios-bg-grouped-tertiary: #f2f2f7;
+
+    /* Labels */
+    --ios-label-primary: #000000;
+    --ios-label-secondary: rgba(60, 60, 67, 0.6);
+    --ios-label-tertiary: rgba(60, 60, 67, 0.3);
+    --ios-label-quaternary: rgba(60, 60, 67, 0.18);
+
+    /* Fills */
+    --ios-fill-primary: rgba(120, 120, 120, 0.2);
+    --ios-fill-secondary: rgba(120, 120, 128, 0.16);
+    --ios-fill-tertiary: rgba(118, 118, 128, 0.12);
+    --ios-fill-quaternary: rgba(116, 116, 128, 0.08);
+
+    /* Separators */
+    --ios-separator: rgba(0, 0, 0, 0.12);
+    /* Non-opaque */
+    --ios-separator-opaque: #c6c6c8;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        /* System Colors */
+        --ios-red: #ff4245;
+        --ios-orange: #ff9230;
+        --ios-yellow: #ffd600;
+        --ios-green: #30d158;
+        --ios-mint: #00dac3;
+        --ios-teal: #00d2e0;
+        --ios-cyan: #3cd3fe;
+        --ios-blue: #0091ff;
+        --ios-indigo: #6b5dff;
+        --ios-purple: #db34f2;
+        --ios-pink: #ff375f;
+        --ios-brown: #b78a66;
+
+        /* Grays */
+        --ios-gray: #8e8e93;
+        --ios-gray2: #636366;
+        --ios-gray3: #48484a;
+        --ios-gray4: #3a3a3c;
+        --ios-gray5: #2c2c2e;
+        --ios-gray6: #1c1c1e;
+        --ios-black: #000000;
+        --ios-white: #ffffff;
+
+        /* Backgrounds */
+        --ios-bg-primary: #000000;
+        --ios-bg-secondary: #1c1c1e;
+        --ios-bg-tertiary: #2c2c2e;
+
+        /* Backgrounds Grouped */
+        --ios-bg-grouped-primary: #000000;
+        --ios-bg-grouped-secondary: #1c1c1e;
+        --ios-bg-grouped-tertiary: #2c2c2e;
+
+        /* Labels */
+        --ios-label-primary: #ffffff;
+        --ios-label-secondary: rgba(235, 235, 245, 0.6);
+        --ios-label-tertiary: rgba(235, 235, 245, 0.3);
+        --ios-label-quaternary: rgba(235, 235, 245, 0.16);
+
+        /* Fills */
+        --ios-fill-primary: rgba(120, 120, 128, 0.36);
+        --ios-fill-secondary: rgba(120, 120, 128, 0.32);
+        --ios-fill-tertiary: rgba(118, 118, 128, 0.24);
+        --ios-fill-quaternary: rgba(118, 118, 128, 0.18);
+
+        /* Separators */
+        --ios-separator: rgba(255, 255, 255, 0.17);
+        /* Non-opaque */
+        --ios-separator-opaque: #38383a;
+    }
+}
