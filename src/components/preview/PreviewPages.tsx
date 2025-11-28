@@ -1,4 +1,4 @@
-import { createSignal, createEffect, onMount, onCleanup, Show } from "solid-js";
+import { createEffect, onMount, onCleanup } from "solid-js";
 
 const pagedJsUrl = `${import.meta.env.BASE_URL}paged.esm.js`;
 
@@ -10,31 +10,13 @@ interface PreviewPagesProps {
 export default function PreviewPages(props: PreviewPagesProps) {
     let iframeRef: HTMLIFrameElement | undefined;
 
-    const [iframeHeight, setIframeHeight] = createSignal(0);
-    const [isRendering, setIsRendering] = createSignal(true);
-
     // 1. Initialize iframe content and Message Listeners (onMount)
     onMount(() => {
-        // --- Message Handling ---
-        const handleMessage = (event: MessageEvent) => {
-            if (event.data.type === "HEIGHT_UPDATE") {
-                setIframeHeight(event.data.height);
-            } else if (event.data.type === "RENDER_DONE") {
-                setIsRendering(false);
-            }
-        };
-
-        window.addEventListener("message", handleMessage);
-
         // --- Iframe Initialization ---
         const iframe = iframeRef;
         if (iframe && !iframe.srcdoc) {
             iframe.srcdoc = iframeHtmlContent(pagedJsUrl);
         }
-
-        onCleanup(() => {
-            window.removeEventListener("message", handleMessage);
-        });
     });
 
     // 2. Trigger render when props change
@@ -51,7 +33,6 @@ export default function PreviewPages(props: PreviewPagesProps) {
 
         const attemptRender = () => {
             if (iframe && iframe.contentWindow && (iframe.contentWindow as any).renderPreview) {
-                setIsRendering(true);
                 (iframe.contentWindow as any).renderPreview(htmlContent, cssContent);
                 if (pollInterval) clearInterval(pollInterval);
             } else if (!pollInterval) {
@@ -74,10 +55,7 @@ export default function PreviewPages(props: PreviewPagesProps) {
             style={{
                 width: "100%",
                 height: "100%",
-                border: "none",
-                overflow: "hidden",
             }}
-            title="Resume Preview"
         />
     );
 }
@@ -195,9 +173,6 @@ const iframeHtmlContent = (pagedJsUrl: string) => `
                         // Show new container
                         container.classList.remove("preview-hidden");
                         container.classList.add("preview-visible");
-
-                        updateHeight();
-                        window.parent.postMessage({ type: "RENDER_DONE" }, "*");
                     } else {
                         // Superseded
                         container.remove();
@@ -210,15 +185,6 @@ const iframeHtmlContent = (pagedJsUrl: string) => `
                     scheduleNextRender();
                 }
             }
-
-            function updateHeight() {
-                const height = document.body.scrollHeight;
-                window.parent.postMessage({ type: "HEIGHT_UPDATE", height }, "*");
-            }
-
-            // Monitor resize
-            const resizeObserver = new ResizeObserver(() => updateHeight());
-            resizeObserver.observe(document.body);
 
         </script>
     </body>
