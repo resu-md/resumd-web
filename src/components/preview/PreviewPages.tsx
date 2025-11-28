@@ -151,7 +151,7 @@ const iframeHtmlContent = (pagedJsUrl: string) => `
                     document.head.appendChild(styleEl);
                 }
                 // Prepend default @page rules so user CSS can override them
-                css = "@page { size: A4 portrait; margin: 0.4in; }\\nbody { margin: 0; padding: 0; }\\n\\n" + css; // TODO: DRY with exportPdf.ts
+                css = "@page { margin: 0.4in; }\\nbody { margin: 0; padding: 0; }\\n\\n" + css; // TODO: DRY with exportPdf.ts
                 styleEl.textContent = css;
                 
                 // Wait for fonts to load
