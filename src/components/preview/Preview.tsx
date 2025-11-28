@@ -17,9 +17,9 @@ export default function Preview(props: { class: string; html: Accessor<string>; 
                 <PreviewControls zoom={zoom} setZoom={setZoom} onExport={handleExport} />
             </div>
             <div class="bg-system-secondary flex-1 overflow-auto">
-                {/* <div style={{ zoom: `${zoom()}%`, "min-height": "100%" }}> */}
-                <PreviewPages html={props.html()} css={props.css()} />
-                {/* </div> */}
+                <div style={{ zoom: `${zoom()}%`, height: "100%" }}>
+                    <PreviewPages html={props.html()} css={props.css()} />
+                </div>
             </div>
         </div>
     );

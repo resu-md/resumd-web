@@ -70,20 +70,7 @@ const iframeHtmlContent = (pagedJsUrl: string) => `
                 padding: 0;
                 background: transparent;
             }
-            .pagedjs_pages {
-                width: 100%;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                padding: 15px 0;
-                gap: 20px;
-            }
-            .pagedjs_page {
-                background: white;
-            }
-            .preview-container {
-                width: 100%;
-            }
+        
             .preview-hidden {
                 position: absolute;
                 top: 0;
@@ -93,6 +80,19 @@ const iframeHtmlContent = (pagedJsUrl: string) => `
             .preview-visible {
                 position: relative;
                 visibility: visible;
+            }
+
+            .pagedjs_pages {
+                width: 100%;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                margin: 5px 0;
+            }
+            .pagedjs_page {
+                margin: 5px auto;
+                border: 1px solid #ddd;
+                background: white;
             }
         </style>
     </head>
