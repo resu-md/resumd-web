@@ -151,16 +151,17 @@ const iframeHtmlContent = (pagedJsUrl: string) => `
                     document.head.appendChild(styleEl);
                 }
                 // Prepend default @page rules so user CSS can override them
-                const defaultCss = "@page { margin: 40mm; }";
-                styleEl.textContent = defaultCss + "\\n" + css;
-
+                css = "@page { size: A4 portrait; margin: 0.4in; }\\nbody { margin: 0; padding: 0; }\\n\\n" + css; // TODO: DRY with exportPdf.ts
+                styleEl.textContent = css;
+                
                 // Wait for fonts to load
                 await document.fonts.ready;
-
+                
                 const previewer = new Previewer();
+                const inlineStylesheets = [{ "inline://user.css": css }];
 
                 try {
-                    await previewer.preview(html, [], container);
+                    await previewer.preview(html, inlineStylesheets, container);
 
                     if (currentRenderId === renderId) {
                         // Remove old containers

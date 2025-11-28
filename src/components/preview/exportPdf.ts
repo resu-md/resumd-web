@@ -6,6 +6,8 @@ export function exportAsPdf(html: string, css: string) {
                 <meta charset="UTF-8">
                 <title>Export PDF</title>
                 <style>
+                    @page { margin: 0.4in; size: A4 portrait; }
+                    body { margin: 0; padding: 0; }
                     ${css}
                 </style>
             </head>
