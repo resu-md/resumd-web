@@ -1,4 +1,4 @@
-import { IoAdd, IoDownloadOutline, IoRemoveOutline } from "solid-icons/io";
+import { IoAdd, IoRemoveOutline } from "solid-icons/io";
 import { onMount, onCleanup, type Accessor, type Setter } from "solid-js";
 
 const ZOOM_STEPS = [25, 33, 50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200, 300, 400, 500];
@@ -10,11 +10,7 @@ function clampZoom(value: number): number {
     return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, value));
 }
 
-export default function PreviewControls(props: {
-    zoom: Accessor<number>;
-    setZoom: Setter<number>;
-    onExport: () => void;
-}) {
+export default function ZoomControl(props: { zoom: Accessor<number>; setZoom: Setter<number> }) {
     const handleZoomIn = () => {
         const next = ZOOM_STEPS.find((z) => z > props.zoom());
         if (next) props.setZoom(next);
@@ -62,37 +58,26 @@ export default function PreviewControls(props: {
     });
 
     return (
-        <div class="flex h-9 w-full items-center">
-            <div class="flex-[1_1_0%]" />
-            <div class="flex items-center">
-                <button
-                    class="hover:bg-fill-tertiary flex size-7 items-center justify-center rounded-md hover:cursor-pointer"
-                    onClick={handleZoomOut}
-                    title="Zoom Out"
-                >
-                    <IoRemoveOutline size={20} class="text-label-primary" />
-                </button>
+        <div class="bg-system-tertiary/90 shadow-secondary flex h-9 items-center overflow-hidden rounded-full backdrop-blur-md">
+            <ZoomPercentageInput zoom={props.zoom} onZoomChange={props.setZoom} />
 
-                <ZoomPercentageInput zoom={props.zoom} onZoomChange={props.setZoom} />
+            <div class="bg-separator h-4 w-px" />
 
-                <button
-                    class="hover:bg-fill-tertiary flex size-7 items-center justify-center rounded-md hover:cursor-pointer"
-                    onClick={handleZoomIn}
-                    title="Zoom In"
-                >
-                    <IoAdd size={20} class="text-label-primary" />
-                </button>
-            </div>
+            <button
+                class="active:bg-fill-quaternary focus-visible:bg-fill-quaternary flex h-9 w-8.5 items-center justify-center pl-0.5 hover:cursor-pointer focus:outline-none"
+                onClick={handleZoomOut}
+                title="Zoom out"
+            >
+                <IoRemoveOutline size={20} class="text-label-primary" />
+            </button>
 
-            <div class="flex flex-[1_1_0%] justify-end pr-4">
-                <button
-                    class="hover:bg-fill-tertiary flex size-7 items-center justify-center rounded-md hover:cursor-pointer"
-                    onClick={props.onExport}
-                    title="Export PDF"
-                >
-                    <IoDownloadOutline size={18} />
-                </button>
-            </div>
+            <button
+                class="active:bg-fill-quaternary focus-visible:bg-fill-quaternary flex h-9 w-8.5 items-center justify-center rounded-r-full pr-1 hover:cursor-pointer focus:outline-none"
+                onClick={handleZoomIn}
+                title="Zoom in"
+            >
+                <IoAdd size={20} class="text-label-primary" />
+            </button>
         </div>
     );
 }
@@ -118,7 +103,7 @@ function ZoomPercentageInput(props: { zoom: Accessor<number>; onZoomChange: Sett
             value={props.zoom() + "%"}
             onBlur={(e) => handleSubmit(e.currentTarget.value)}
             onKeyDown={handleKeyDown}
-            class="mx-1.5 h-7 w-12 rounded-lg border border-gray-300 bg-white text-center text-sm"
+            class="mr-0.5 ml-2 h-7 w-12 pb-0.5 text-center text-sm outline-none"
         />
     );
 }

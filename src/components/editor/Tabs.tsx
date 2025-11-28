@@ -1,11 +1,20 @@
-export default function Tabs() {
+import clsx from "clsx";
+
+export default function Tabs(props: { values: string[]; active: string; onChange: (value: string) => void }) {
     return (
-        <div class="w-full  border-b border-separator">
-            <div class="h-9 w-fit border-r border-separator flex items-center">
-                <button class="h-full px-7 tracking-tight bg-blue/20 text-blue-600">resume.md</button>
-                <div class="bg-separator w-px h-5" />
-                <button class="h-full px-7 tracking-tight">resume.css</button>
-            </div>
+        <div class="border-separator flex w-full border-b">
+            {props.values.map((value) => (
+                <button
+                    type="button"
+                    class={clsx("h-9 px-7 text-sm tracking-tight", {
+                        "bg-blue/20 text-blue": value === props.active,
+                        "text-system-on-tertiary/60": value !== props.active,
+                    })}
+                    onClick={() => props.onChange(value)}
+                >
+                    {String(value)}
+                </button>
+            ))}
         </div>
     );
 }
