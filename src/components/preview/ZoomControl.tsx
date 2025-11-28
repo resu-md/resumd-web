@@ -103,7 +103,7 @@ function ZoomPercentageInput(props: { zoom: Accessor<number>; onZoomChange: Sett
             value={props.zoom() + "%"}
             onBlur={(e) => handleSubmit(e.currentTarget.value)}
             onKeyDown={handleKeyDown}
-            class="mr-0.5 ml-2 h-7 w-12 text-center text-sm outline-none"
+            class="mr-0.5 ml-2 h-7 w-12 pb-0.5 text-center text-sm outline-none"
         />
     );
 }
