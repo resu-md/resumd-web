@@ -1,5 +1,6 @@
-import { onMount, onCleanup } from "solid-js";
+import { onMount, onCleanup, createEffect } from "solid-js";
 import monaco from "./monaco-config";
+import { useTheme } from "../../contexts/ThemeContext";
 
 export default function Editor(props: {
     class: string;
@@ -8,6 +9,7 @@ export default function Editor(props: {
 }) {
     let editorContainer: HTMLDivElement | undefined;
     let editor: monaco.editor.IStandaloneCodeEditor | undefined;
+    const { theme } = useTheme();
 
     onMount(() => {
         if (editorContainer) {
@@ -20,13 +22,21 @@ export default function Editor(props: {
                 scrollbar: { useShadows: false },
                 scrollBeyondLastLine: false,
                 wordWrap: "on",
-                theme: "vs-light",
+                theme: theme() === "dark" ? "vs-dark" : "vs-light",
             });
 
             editor.onDidChangeModelContent(() => {
                 if (props.onValueChange && editor) {
                     props.onValueChange(editor.getValue());
                 }
+            });
+        }
+    });
+
+    createEffect(() => {
+        if (editor) {
+            editor.updateOptions({
+                theme: theme() === "dark" ? "vs-dark" : "vs-light",
             });
         }
     });

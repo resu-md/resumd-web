@@ -58,13 +58,13 @@ export default function ZoomControl(props: { zoom: Accessor<number>; setZoom: Se
     });
 
     return (
-        <div class="bg-system-primary/90 shadow-secondary flex h-9 items-center overflow-hidden rounded-full backdrop-blur-md">
+        <div class="bg-system-tertiary/90 shadow-secondary flex h-9 items-center overflow-hidden rounded-full backdrop-blur-md">
             <ZoomPercentageInput zoom={props.zoom} onZoomChange={props.setZoom} />
 
             <div class="bg-separator h-4 w-px" />
 
             <button
-                class="active:bg-fill-quaternary focus-visible:bg-fill-quaternary flex size-9 items-center justify-center hover:cursor-pointer focus:outline-none"
+                class="active:bg-fill-quaternary focus-visible:bg-fill-quaternary flex h-9 w-8.5 items-center justify-center pl-0.5 hover:cursor-pointer focus:outline-none"
                 onClick={handleZoomOut}
                 title="Zoom out"
             >
@@ -72,7 +72,7 @@ export default function ZoomControl(props: { zoom: Accessor<number>; setZoom: Se
             </button>
 
             <button
-                class="active:bg-fill-quaternary focus-visible:bg-fill-quaternary flex size-9 items-center justify-center rounded-r-full pr-1 hover:cursor-pointer focus:outline-none"
+                class="active:bg-fill-quaternary focus-visible:bg-fill-quaternary flex h-9 w-8.5 items-center justify-center rounded-r-full pr-1 hover:cursor-pointer focus:outline-none"
                 onClick={handleZoomIn}
                 title="Zoom in"
             >

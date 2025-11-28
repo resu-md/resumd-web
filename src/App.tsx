@@ -6,6 +6,8 @@ import { TEMPLATE_1 } from "./components/editor/default";
 import Preview from "./components/preview/Preview";
 import Editor from "./components/editor/Editor";
 import Tabs from "./components/editor/Tabs";
+// Contexts
+import { ThemeProvider } from "./contexts/ThemeContext";
 
 export default function App() {
     const [markdown, setMarkdown] = createSignal(TEMPLATE_1.markdown);
@@ -14,15 +16,16 @@ export default function App() {
     const html = createMemo(() => marked.parse(markdown(), { async: false, breaks: true }) as string);
 
     return (
-        <main class="flex h-dvh w-dvw">
-            <div class="w-[calc(50%+1rem)] p-3">
-                <div class="shadow-primary flex h-full flex-col overflow-hidden rounded-xl">
-                    <Tabs />
-                    <Editor class="flex-1" initialValue={markdown()} onValueChange={setMarkdown} />
+        <ThemeProvider>
+            <main class="bg-system-secondary flex h-dvh w-dvw">
+                <div class="w-1/2 p-3 2xl:w-2/5">
+                    <div class="shadow-primary bg-system-tertiary flex h-full flex-col overflow-hidden rounded-xl">
+                        <Tabs />
+                        <Editor class="flex-1" initialValue={markdown()} onValueChange={setMarkdown} />
+                    </div>
                 </div>
-            </div>
-            {/* <div class="bg-separator h-dvh w-px" /> */}
-            <Preview class="flex-1" html={html} css={css} />
-        </main>
+                <Preview class="flex-1" html={html} css={css} />
+            </main>
+        </ThemeProvider>
     );
 }
