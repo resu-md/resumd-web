@@ -146,25 +146,27 @@ const iframeHtmlContent = (pagedJsUrl: string) => `
                 container.classList.add("preview-container", "preview-hidden");
                 root.appendChild(container);
 
-                // Inject CSS
+                const cssWithDefaults = "@page { margin: 0.4in; }\\nbody { margin: 0; padding: 0; }\\n\\n" + css;
+                const helperStyles = '<style>* { overflow-wrap: break-word; word-break: break-word; }</style>';
+                const inlineCssTag = '<style id="preview-user-style">' + cssWithDefaults + '</style>';
+                const htmlWithStyles = helperStyles + inlineCssTag + html;
+
+                // Keep a dedicated <style> node in the iframe head so live preview updates immediately
                 let styleEl = document.getElementById("user-style");
                 if (!styleEl) {
                     styleEl = document.createElement("style");
                     styleEl.id = "user-style";
                     document.head.appendChild(styleEl);
                 }
-                // Prepend default @page rules so user CSS can override them
-                css = "@page { margin: 0.4in; }\\nbody { margin: 0; padding: 0; }\\n\\n" + css; // TODO: DRY with exportPdf.ts
-                styleEl.textContent = css;
-                
-                // Wait for fonts to load
+                styleEl.textContent = cssWithDefaults;
+
+                // Wait for fonts to load before we paginate to avoid flashes
                 await document.fonts.ready;
-                
+
                 const previewer = new Previewer();
-                const inlineStylesheets = [{ "inline://user.css": css }];
 
                 try {
-                    await previewer.preview(html, inlineStylesheets, container);
+                    await previewer.preview(htmlWithStyles, [], container);
 
                     if (currentRenderId === renderId) {
                         // Remove old containers
