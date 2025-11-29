@@ -24,3 +24,5 @@ self.MonacoEnvironment = {
 };
 
 export default monaco;
+
+// TODO: Consider https://github.com/alxnddr/solid-monaco
