@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Export PDF</title>
+        <style>
+            @page {
+                margin: 0.4in;
+                size: A4 portrait;
+            }
+            body {
+                margin: 0;
+                padding: 0;
+            }
+
+            /*{{css}}*/
+        </style>
+    </head>
+    <body>
+        <!--{{html}}-->
+        <script>
+            window.addEventListener("load", function () {
+                window.print();
+            });
+        </script>
+    </body>
+</html>

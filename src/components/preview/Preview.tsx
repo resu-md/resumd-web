@@ -1,6 +1,6 @@
 import { createSignal, type Accessor } from "solid-js";
 import clsx from "clsx";
-import { exportAsPdf } from "./exportPdf";
+import printTemplate from "./pdf-print-template.html?raw";
 // Components
 import ZoomControl from "./ZoomControl";
 import PreviewPages from "./PreviewPages";
@@ -38,4 +38,23 @@ export default function Preview(props: { class: string; html: Accessor<string>; 
             </div>
         </div>
     );
+}
+
+function exportAsPdf(html: string, css: string) {
+    const htmlContent = printTemplate.replace("/*{{css}}*/", css).replace("<!--{{html}}-->", html);
+
+    const blob = new Blob([htmlContent], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+
+    const printWindow = window.open(url, "_blank", "width=800,height=600");
+
+    if (!printWindow) {
+        alert("Please allow popups to export as PDF");
+        URL.revokeObjectURL(url);
+        return;
+    }
+
+    printWindow.addEventListener("load", () => {
+        URL.revokeObjectURL(url);
+    });
 }

@@ -1,5 +1,5 @@
 import { createEffect, onMount } from "solid-js";
-import previewTemplate from "./preview-template.html?raw";
+import previewTemplate from "./pdf-preview-template.html?raw";
 
 const PAGED_JS_URL = "https://unpkg.com/pagedjs/dist/paged.js"; // TODO: Bundle locally
 
