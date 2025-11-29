@@ -1,0 +1,167 @@
+@import url("https://fonts.googleapis.com/css2?family=Tinos:wght@400;700&display=swap");
+
+@page {
+    size: letter;
+    margin: 0.5in;
+}
+
+:root {
+    --main-color: black;
+    --accent-color: #b30000;
+    --link-color: #0c5b97;
+    --h1-font-size: 11pt;
+    --h2-font-size: 11pt;
+    --h3-font-size: 11pt;
+    --headerInfo-font-size: 11pt;
+}
+
+/* meta */
+body {
+    font-family:
+        Tinos,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        "Helvetica Neue",
+        sans-serif;
+    font-size: 14px;
+}
+
+.spacer {
+    margin: 0px auto;
+}
+
+/* ordering of content */
+h1 {
+    order: 0;
+}
+
+.headerInfo {
+    order: 1;
+}
+
+/* styling content */
+h1,
+h2,
+h3,
+h4,
+p,
+a,
+li {
+    color: var(--main-color);
+    font-size: 10pt;
+}
+
+h2 {
+    margin: auto;
+}
+
+h3 {
+    margin: 6px 0px;
+}
+
+h1 {
+    text-align: center;
+    font-size: var(--h1-font-size);
+    margin: 0;
+    padding: 24pt 0 6pt 0;
+    padding-bottom: 3pt;
+    border-bottom: 1px solid #000000;
+}
+
+h2 {
+    font-size: var(--h2-font-size);
+    padding: 0;
+    padding-top: 11px;
+    display: block;
+    text-align: center;
+}
+
+h3 {
+    display: flex;
+    font-size: var(--h3-font-size);
+    padding: 0;
+    padding-top: 10px;
+    margin-bottom: 0;
+    justify-content: space-between;
+}
+
+h2 + h3 {
+    padding-top: 0;
+    margin-top: 0;
+}
+
+p {
+    margin: 0;
+    padding: 0;
+    display: flex;
+}
+
+a {
+    color: rgb(17, 85, 204);
+    font-weight: bold;
+}
+
+ul {
+    margin: 0 0;
+    padding-left: 24px;
+    padding-right: 24px;
+    text-align: left;
+    list-style-type: disc;
+}
+
+ul > li {
+    margin-left: 0.25in;
+    margin-right: -0.25in;
+}
+
+/* header info content */
+.headerInfo > ul {
+    display: flex;
+    text-align: center;
+    justify-content: center;
+    margin: 0px auto 0px !important;
+    padding: 0;
+    padding-top: 8pt;
+}
+
+.headerInfo > ul > li {
+    display: inline;
+    white-space: pre;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.headerInfo > ul > li:before {
+    content: "";
+}
+
+.headerInfo > ul > li:not(:last-child) {
+    margin-right: 3px;
+}
+
+.headerInfo > ul > li:not(:last-child):after {
+    content: "•";
+    margin-left: 3px;
+}
+
+/* role content */
+.my-role {
+    display: block;
+    margin: 0 auto;
+    text-align: center;
+    font-size: 10pt;
+}
+
+/* location content */
+.my-location {
+    display: block;
+    margin-top: 0;
+    margin-bottom: 4px;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+    font-size: var(--headerInfo-font-size);
+}

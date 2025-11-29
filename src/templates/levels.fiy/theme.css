@@ -1,0 +1,173 @@
+@import url("https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,500;0,600;0,700;1,500&display=swap");
+
+@page {
+    size: letter;
+    margin: 0.5in;
+}
+
+/* meta */
+body {
+    font-family:
+        "Open Sans",
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        "Helvetica Neue",
+        sans-serif;
+    font-size: 14px;
+    position: relative;
+}
+
+.spacer {
+    margin: 0px auto;
+}
+
+.center {
+    text-align: center;
+}
+
+.headerInfo {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.headerInfo > p {
+    width: 100%;
+}
+
+h3,
+p,
+a,
+li {
+    color: black;
+    font-size: 10pt;
+}
+
+h1 {
+    text-align: center;
+    font-size: 24pt;
+    margin: 0;
+    margin-bottom: 12px;
+}
+
+h2 {
+    color: #1155cc;
+    border-bottom: 2px solid #1155cc;
+    font-size: 14pt;
+    padding: 0;
+    padding-top: 5px;
+    padding-bottom: 3px;
+    margin: 10px 0px 5px;
+}
+
+h3 {
+    display: flex;
+    font-size: 11pt;
+    padding: 0;
+    padding-bottom: 0px;
+    margin-bottom: 0px;
+    justify-content: space-between;
+    text-align: center;
+}
+
+.threeColumns > h3,
+.threeColumns > p {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+}
+
+.threeColumns > h3 > *:nth-child(1),
+.threeColumns > p > *:nth-child(1) {
+    text-align: left;
+}
+
+.threeColumns > h3 > *:nth-child(2),
+.threeColumns > p > *:nth-child(2) {
+    text-align: center;
+}
+
+.threeColumns > h3 > *:nth-child(3),
+.threeColumns > p > *:nth-child(3) {
+    text-align: right;
+}
+
+p {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: space-between;
+}
+
+a {
+    color: rgb(17, 85, 204);
+    font-weight: bold;
+}
+
+ul {
+    margin: 0;
+    padding-left: 24px;
+    padding-right: 24px;
+    text-align: left;
+    list-style-type: none;
+}
+
+ul > li {
+    margin-left: 0.25in;
+    margin-right: -0.25in;
+}
+
+ul > li:before {
+    content: "•";
+    font-weight: bold;
+    position: absolute;
+    margin: 0;
+    margin-left: -0.25in;
+}
+
+/* header info content */
+.headerInfo {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: center;
+}
+
+.headerInfo .column {
+    flex: 1;
+    width: auto;
+    padding: 0 0 10px;
+}
+
+.headerInfo .column:nth-child(1) {
+    /* selects the first column */
+    font-size: 11pt;
+    text-align: left;
+}
+
+.headerInfo .column:nth-child(2) {
+    /* selects the second column */
+    font-size: 24pt;
+    text-align: center;
+}
+
+.headerInfo .column:nth-child(3) {
+    /* selects the third column */
+    font-size: 11pt;
+    text-align: right;
+}
+
+.headerInfo .column:nth-child(3) a {
+    color: black;
+    text-decoration: underline;
+}
+
+.headerInfo .column:nth-child(3) a:active {
+    color: black;
+}
