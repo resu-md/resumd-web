@@ -1,0 +1,147 @@
+@import url("https://fonts.googleapis.com/css2?family=Tinos:wght@400;700&display=swap");
+
+@page {
+    size: letter;
+    margin: 0.5in;
+}
+
+/* meta */
+body {
+    font-family:
+        Tinos,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        "Helvetica Neue",
+        sans-serif;
+    font-size: 14px;
+}
+
+.spacer {
+    margin: 0px auto;
+}
+
+/* styling content */
+h1,
+h2 {
+    color: rgb(60, 120, 216);
+}
+
+h3,
+p,
+a,
+li {
+    color: black;
+    font-size: 10pt;
+}
+
+h2 {
+    margin: 10px 0px;
+}
+
+h3 {
+    margin: 6px 0px;
+}
+
+h1 {
+    text-transform: uppercase;
+    text-align: center;
+    font-size: 24pt;
+    margin: 0;
+    margin-bottom: 8px;
+}
+
+h2 {
+    border-bottom: 1px solid #000000;
+    text-transform: uppercase;
+    font-size: 11pt;
+    padding: 0;
+    padding-top: 5px;
+}
+
+h3 {
+    display: flex;
+    font-size: 10pt;
+    padding: 0;
+    padding-top: 8px;
+    margin-bottom: 0;
+    justify-content: space-between;
+}
+
+p {
+    margin: 0;
+    padding: 0;
+    display: flex;
+}
+
+li > p {
+    display: inline;
+}
+
+a {
+    color: rgb(17, 85, 204);
+    font-weight: bold;
+}
+
+ul {
+    margin: 0;
+    padding-left: 24px;
+    padding-right: 24px;
+    text-align: left;
+    list-style-type: none;
+}
+
+ul > li {
+    margin-left: 0.15in;
+    margin-right: -0.2in;
+}
+
+ul > li:before {
+    content: "●";
+    position: absolute;
+    margin: 0;
+    margin-left: -0.2in;
+}
+
+/* header info content */
+.headerInfo > ul {
+    display: flex;
+    text-align: center;
+    justify-content: center;
+    margin: 0px auto 0px !important;
+    padding: 0;
+    padding-bottom: 11px;
+}
+
+.headerInfo > ul > li {
+    display: inline;
+    white-space: pre;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.headerInfo > ul > li:before {
+    content: "";
+}
+
+.headerInfo > ul > li:not(:last-child) {
+    margin-right: 3px;
+}
+
+.headerInfo > ul > li:not(:last-child):after {
+    content: "•";
+    margin-left: 3px;
+}
+
+/* role content */
+.my-role {
+    display: block;
+    margin-top: 0;
+    margin-bottom: 4px;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+    font-size: 10pt;
+}

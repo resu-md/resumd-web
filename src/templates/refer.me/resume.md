@@ -22,8 +22,7 @@ City, State ZIP (Open to Remote) | (555) 123-5555 | fake@email.com
 
 ### Back-End Software Engineer | Name of Application <span class="spacer"></span>Jan 2022 - Present
 
-_Backend redesign for reviews module of legacy e-commerce microservice_<span class="spacer"></span>Javascript | Node.js
-| Express | PostgreSQL | EC2
+_Backend redesign for reviews module of legacy e-commerce microservice_<span class="spacer"></span> Node.js | Express | PostgreSQL | EC2
 
 - Optimized existing monolithic back-end of an e-commerce website to handle 360,000 requests per minute with low latency **(<20 ms)** and error rate **(<0.1%)** by horizontally microservice to 5 AWS EC2 instances and using a least connections load balancing method with NGINX to increase fault tolerance
 - Leveraged K6 and Loader.io to identify performance bottlenecks, then implemented caching to lower frequency of database retrieval to allow for a throughput increase of **733%**
