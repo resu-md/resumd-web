@@ -1,21 +1,17 @@
-import { createSignal, createMemo } from "solid-js";
+import { createSignal } from "solid-js";
 import { makePersisted } from "@solid-primitives/storage";
-import { marked } from "marked";
 // Constants
 import markdownTemplate from "@/templates/refer.me/resume.md?raw";
 import cssTemplate from "@/templates/refer.me/theme.css?raw";
 // Components
-import Preview from "@/components/preview/Preview";
+import Previewer from "@/components/preview/Previewer";
 import Editor from "@/components/editor/Editor";
 import Tabs from "@/components/editor/Tabs";
 
 export default function EditorPage() {
     const [activeTab, setActiveTab] = createSignal<"resume.md" | "theme.css">("resume.md");
-
     const [markdown, setMarkdown] = makePersisted(createSignal(markdownTemplate), { name: "resumd.markdown" });
     const [css, setCss] = makePersisted(createSignal(cssTemplate), { name: "resumd.css" });
-
-    const html = createMemo(() => marked.parse(markdown(), { async: false, breaks: true }) as string);
 
     return (
         <main class="bg-system-grouped-secondary padding-r flex h-dvh w-dvw">
@@ -42,7 +38,7 @@ export default function EditorPage() {
                     />
                 </div>
             </div>
-            <Preview class="flex-1" html={html} css={css} />
+            <Previewer class="flex-1" markdown={markdown} css={css} />
         </main>
     );
 }

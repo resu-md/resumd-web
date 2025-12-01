@@ -58,7 +58,7 @@ export default function ZoomControl(props: { zoom: Accessor<number>; setZoom: Se
     });
 
     return (
-        <div class="bg-system-tertiary/90 shadow-secondary flex h-9 items-center overflow-hidden rounded-full backdrop-blur-md">
+        <div class="bg-system-tertiary/90 shadow-secondary flex h-9 w-fit items-center overflow-hidden rounded-full backdrop-blur-md">
             <ZoomPercentageInput zoom={props.zoom} onZoomChange={props.setZoom} />
 
             <div class="bg-separator h-4 w-px" />

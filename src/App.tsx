@@ -3,7 +3,7 @@ import { Route, Router } from "@solidjs/router";
 // Context
 import { ThemeProvider } from "@/contexts/ThemeContext";
 // Pages
-import EditorPage from "@/pages/Editor.page";
+import EditorPage from "@/pages/EditorPage";
 
 export default function App() {
     return (
