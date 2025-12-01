@@ -1,6 +1,6 @@
 import { onMount, onCleanup, createEffect } from "solid-js";
 import monaco from "./monaco-config";
-import { useTheme } from "../../contexts/ThemeContext";
+import { useTheme } from "@/contexts/ThemeContext";
 
 type EditorModel = {
     model: monaco.editor.ITextModel;
