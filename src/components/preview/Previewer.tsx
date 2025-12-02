@@ -10,12 +10,22 @@ import { useZoom, useZoomShortcuts } from "./ZoomContext";
 import ZoomControl from "./ZoomControl";
 import PreviewPages from "./PreviewPages";
 
+marked.use({
+    tokenizer: {
+        url(_) {
+            // Disable automatic links for plain URLs/emails
+            // www.example.com or test@gmail.com will not become <a> unless wrapped in [link.com](link.com)
+            return undefined;
+        },
+    },
+});
+
 export default function Previewer(props: { class: string; markdown: Accessor<string>; css: Accessor<string> }) {
     const { zoom } = useZoom();
     const { handleKeyboardEvent, handleWheelEvent } = useZoomShortcuts();
 
     const parsedMarkdown = createMemo((prev: ParsedMarkdown | undefined) => resolveMarkdown(props.markdown(), prev));
-    const html = createMemo(() => marked.parse(parsedMarkdown().body, { async: false, breaks: true }));
+    const html = createMemo(() => marked.parse(parsedMarkdown().body, { async: false }));
     const metadata = createMemo(() => parsedMarkdown().metadata, undefined, {
         equals: (prev, next) => prev.title === next.title && prev.lang === next.lang,
     });
