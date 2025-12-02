@@ -7,6 +7,7 @@ import cssTemplate from "@/templates/refer.me/theme.css?raw";
 import Previewer from "@/components/preview/Previewer";
 import Editor from "@/components/editor/Editor";
 import Tabs from "@/components/editor/Tabs";
+import { ZoomProvider } from "@/components/preview/ZoomContext";
 
 export default function EditorPage() {
     const [activeTab, setActiveTab] = createSignal<"resume.md" | "theme.css">("resume.md");
@@ -38,7 +39,9 @@ export default function EditorPage() {
                     />
                 </div>
             </div>
-            <Previewer class="flex-1" markdown={markdown} css={css} />
+            <ZoomProvider>
+                <Previewer class="flex-1" markdown={markdown} css={css} />
+            </ZoomProvider>
         </main>
     );
 }

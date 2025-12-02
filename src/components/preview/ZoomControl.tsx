@@ -1,65 +1,32 @@
 import { IoAdd, IoRemoveOutline } from "solid-icons/io";
-import { onMount, onCleanup, type Accessor, type Setter } from "solid-js";
+import {  type Accessor, type Setter } from "solid-js";
+import { useZoom } from "./ZoomContext";
 
 const ZOOM_STEPS = [25, 33, 50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200, 300, 400, 500];
 const MIN_ZOOM = 25;
 const MAX_ZOOM = 500;
-const SCROLL_WHEEL_ZOOM_FACTOR = 1.2;
+
 
 function clampZoom(value: number): number {
     return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, value));
 }
 
-export default function ZoomControl(props: { zoom: Accessor<number>; setZoom: Setter<number> }) {
+export default function ZoomControl() {
+    const { zoom, setZoom, zoomIn, zoomOut } = useZoom();
+
     const handleZoomIn = () => {
-        const next = ZOOM_STEPS.find((z) => z > props.zoom());
-        if (next) props.setZoom(next);
+        const next = ZOOM_STEPS.find((z) => z > zoom());
+        if (next) zoomIn();
     };
 
     const handleZoomOut = () => {
-        const prev = [...ZOOM_STEPS].reverse().find((z) => z < props.zoom());
-        if (prev) props.setZoom(prev);
+        const prev = [...ZOOM_STEPS].reverse().find((z) => z < zoom());
+        if (prev) zoomOut();
     };
-
-    const handleScrollZoom = (deltaY: number) => {
-        const normalizedDelta = -deltaY / 100;
-        const multiplier = Math.pow(SCROLL_WHEEL_ZOOM_FACTOR, normalizedDelta);
-        const newZoom = clampZoom(Math.round(props.zoom() * multiplier));
-        props.setZoom(newZoom);
-    };
-
-    onMount(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.ctrlKey || e.metaKey) {
-                if (e.key === "+" || e.key === "=") {
-                    e.preventDefault();
-                    handleZoomIn();
-                } else if (e.key === "-") {
-                    e.preventDefault();
-                    handleZoomOut();
-                }
-            }
-        };
-
-        const handleWheel = (e: WheelEvent) => {
-            if (e.ctrlKey || e.metaKey) {
-                e.preventDefault();
-                handleScrollZoom(e.deltaY);
-            }
-        };
-
-        window.addEventListener("keydown", handleKeyDown);
-        window.addEventListener("wheel", handleWheel, { passive: false });
-
-        onCleanup(() => {
-            window.removeEventListener("keydown", handleKeyDown);
-            window.removeEventListener("wheel", handleWheel);
-        });
-    });
 
     return (
         <div class="bg-system-tertiary/90 shadow-secondary flex h-9 w-fit items-center overflow-hidden rounded-full backdrop-blur-md">
-            <ZoomPercentageInput zoom={props.zoom} onZoomChange={props.setZoom} />
+            <ZoomPercentageInput zoom={zoom} onZoomChange={setZoom} />
 
             <div class="bg-separator h-4 w-px" />
 

@@ -1,17 +1,55 @@
-import { createEffect, onMount } from "solid-js";
+import { createEffect, onCleanup, onMount } from "solid-js";
+import { useZoomShortcuts } from "./ZoomContext";
 import previewTemplate from "./pdf-preview-template.html?raw";
 
 const PAGED_JS_URL = "https://unpkg.com/pagedjs/dist/paged.js"; // TODO: Bundle locally
 
 export default function PreviewPages(props: { html: string; css: string }) {
     let iframeRef: HTMLIFrameElement | undefined;
+    let detachInputHandlers: (() => void) | undefined;
+    const { handleKeyboardEvent, handleWheelEvent } = useZoomShortcuts();
+
+    const attachInputHandlers = () => {
+        const iframe = iframeRef;
+        if (!iframe) return;
+
+        const contentWindow = iframe.contentWindow;
+        if (!contentWindow) return;
+
+        const handleWheel = (event: WheelEvent) => {
+            handleWheelEvent(event);
+        };
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            handleKeyboardEvent(event);
+        };
+
+        contentWindow.addEventListener("wheel", handleWheel, { passive: false });
+        contentWindow.addEventListener("keydown", handleKeyDown);
+
+        detachInputHandlers = () => {
+            contentWindow.removeEventListener("wheel", handleWheel);
+            contentWindow.removeEventListener("keydown", handleKeyDown);
+        };
+    };
+
+    const handleIframeLoad = () => {
+        detachInputHandlers?.();
+        attachInputHandlers();
+    };
 
     onMount(() => {
         const iframe = iframeRef;
         if (!iframe) return;
 
+        iframe.addEventListener("load", handleIframeLoad);
         // Initialize the iframe with the basic structure and the PagedJS library
         iframe.srcdoc = previewTemplate.replace("{{PAGED_JS_URL}}", PAGED_JS_URL);
+    });
+
+    onCleanup(() => {
+        iframeRef?.removeEventListener("load", handleIframeLoad);
+        detachInputHandlers?.();
     });
 
     createEffect(() => {
