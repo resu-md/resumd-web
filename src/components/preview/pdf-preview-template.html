@@ -51,6 +51,21 @@
             let queuedRender = null;
             let lastInsertedStyles = [];
 
+            const EXTERNAL_LINK_REGEX = /^(https?:)?\/\//i;
+
+            const enforceExternalLinkTargets = (root) => {
+                if (!root) return;
+                const anchors = root.querySelectorAll("a[href]");
+                anchors.forEach((anchor) => {
+                    const href = anchor.getAttribute("href");
+                    if (!href) return;
+                    if (EXTERNAL_LINK_REGEX.test(href)) {
+                        anchor.setAttribute("target", "_blank");
+                        anchor.setAttribute("rel", "noopener noreferrer");
+                    }
+                });
+            };
+
             // The main render function called from the parent
             window.renderPreview = async (html, css) => {
                 // If we are already rendering, queue this request
@@ -101,6 +116,7 @@
 
                             container.classList.remove("preview-hidden");
                             container.classList.add("preview-visible");
+                            enforceExternalLinkTargets(container);
 
                             // Cleanup styles from the PREVIOUS successful render
                             if (lastInsertedStyles && lastInsertedStyles.length > 0) {
