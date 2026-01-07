@@ -51,21 +51,6 @@
             let queuedRender = null;
             let lastInsertedStyles = [];
 
-            const EXTERNAL_LINK_REGEX = /^(https?:)?\/\//i;
-
-            const enforceExternalLinkTargets = (root) => {
-                if (!root) return;
-                const anchors = root.querySelectorAll("a[href]");
-                anchors.forEach((anchor) => {
-                    const href = anchor.getAttribute("href");
-                    if (!href) return;
-                    if (EXTERNAL_LINK_REGEX.test(href)) {
-                        anchor.setAttribute("target", "_blank");
-                        anchor.setAttribute("rel", "noopener noreferrer");
-                    }
-                });
-            };
-
             // The main render function called from the parent
             window.renderPreview = async (html, css) => {
                 // If we are already rendering, queue this request
@@ -116,7 +101,28 @@
 
                             container.classList.remove("preview-hidden");
                             container.classList.add("preview-visible");
-                            enforceExternalLinkTargets(container);
+
+                            // Make links open in a new tab and ensure they are absolute
+                            // TODO: Test this further, make sure it covers all scenarios
+                            const anchors = container.querySelectorAll("a[href]");
+                            anchors.forEach((anchor) => {
+                                let href = anchor.getAttribute("href").trim();
+                                if (!href) return;
+
+                                // Check if the link starts with a protocol or a slash (for internal/relative)
+                                // We use a regex to see if it starts with "http://", "https://", "mailto:", etc.
+                                const hasProtocol = /^[a-z0-9]+:/i.test(href);
+                                const isRelative = href.startsWith("/") || href.startsWith("#");
+
+                                if (!hasProtocol && !isRelative) {
+                                    href = "https://" + href;
+                                    anchor.setAttribute("href", href);
+                                }
+                                if (!isRelative) {
+                                    anchor.setAttribute("target", "_blank");
+                                    anchor.setAttribute("rel", "noopener noreferrer");
+                                }
+                            });
 
                             // Cleanup styles from the PREVIOUS successful render
                             if (lastInsertedStyles && lastInsertedStyles.length > 0) {
