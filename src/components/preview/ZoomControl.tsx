@@ -1,11 +1,11 @@
-import { IoAdd, IoRemoveOutline } from "solid-icons/io";
-import {  type Accessor, type Setter } from "solid-js";
+import { type Accessor, type Setter } from "solid-js";
 import { useZoom } from "./ZoomContext";
+
+import { CgMathMinus, CgMathPlus } from "solid-icons/cg";
 
 const ZOOM_STEPS = [25, 33, 50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200, 300, 400, 500];
 const MIN_ZOOM = 25;
 const MAX_ZOOM = 500;
-
 
 function clampZoom(value: number): number {
     return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, value));
@@ -25,25 +25,25 @@ export default function ZoomControl() {
     };
 
     return (
-        <div class="bg-system-tertiary/90 shadow-secondary flex h-9 w-fit items-center overflow-hidden rounded-full backdrop-blur-md">
+        <div class="bg-fill-primary ring-separator flex h-7.5 w-fit items-center overflow-hidden rounded-full backdrop-blur-md">
             <ZoomPercentageInput zoom={zoom} onZoomChange={setZoom} />
 
             <div class="bg-separator h-4 w-px" />
 
             <button
-                class="active:bg-fill-quaternary focus-visible:bg-fill-quaternary flex h-9 w-8.5 items-center justify-center pl-0.5 hover:cursor-pointer focus:outline-none"
+                class="active:bg-fill-quaternary focus-visible:bg-fill-quaternary flex h-7.5 w-7 items-center justify-center pl-0.5 hover:cursor-pointer focus:outline-none"
                 onClick={handleZoomOut}
                 title="Zoom out"
             >
-                <IoRemoveOutline size={20} class="text-label-primary" />
+                <CgMathMinus class="text-label-primary" />
             </button>
 
             <button
-                class="active:bg-fill-quaternary focus-visible:bg-fill-quaternary flex h-9 w-8.5 items-center justify-center rounded-r-full pr-1 hover:cursor-pointer focus:outline-none"
+                class="active:bg-fill-quaternary focus-visible:bg-fill-quaternary flex h-7.5 w-7 items-center justify-center rounded-r-full pr-1.5 hover:cursor-pointer focus:outline-none"
                 onClick={handleZoomIn}
                 title="Zoom in"
             >
-                <IoAdd size={20} class="text-label-primary" />
+                <CgMathPlus class="text-label-primary" />
             </button>
         </div>
     );
@@ -70,7 +70,7 @@ function ZoomPercentageInput(props: { zoom: Accessor<number>; onZoomChange: Sett
             value={props.zoom() + "%"}
             onBlur={(e) => handleSubmit(e.currentTarget.value)}
             onKeyDown={handleKeyDown}
-            class="mr-0.5 ml-2 h-7 w-12 pb-0.5 text-center text-sm outline-none"
+            class="mr-1 ml-2 h-7.5 w-12 pb-0.5 text-center text-sm outline-none"
         />
     );
 }

@@ -56,10 +56,6 @@ export default function Previewer(props: { class: string; markdown: Accessor<str
             </div>
 
             <div class="absolute top-3 right-0 left-0 flex items-center justify-between gap-3 px-3.5">
-                <div class="flex-[1_1_0%]">
-                    <ZoomControl />
-                </div>
-
                 {/* <div class="rounded-full bg-black/15 px-2.5 py-1 text-sm backdrop-blur-md">
                     <p>{metadata().title ?? "Resume"}.pdf</p>
                 </div> */}
@@ -74,6 +70,10 @@ export default function Previewer(props: { class: string; markdown: Accessor<str
                         {/* <IoDownloadOutline class="mr-3 ml-2 size-5" /> */}
                     </button>
                 </div>
+            </div>
+
+            <div class="absolute right-0 bottom-5 left-0 flex items-center justify-center">
+                <ZoomControl />
             </div>
         </div>
     );
