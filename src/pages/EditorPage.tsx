@@ -15,9 +15,9 @@ export default function EditorPage() {
     const [css, setCss] = makePersisted(createSignal(cssTemplate), { name: "resumd.css" });
 
     return (
-        <main class="bg-system-grouped-secondary padding-r flex h-dvh w-dvw">
+        <main class="bg-system-secondary/60 padding-r flex h-dvh w-dvw">
             <div class="w-[47%] max-w-[1100px] p-3">
-                <div class="shadow-primary bg-system-secondary flex h-full flex-col overflow-hidden rounded-xl">
+                <div class="shadow-primary bg-system-primary flex h-full flex-col overflow-hidden rounded-xl">
                     <Tabs values={["resume.md", "theme.css"]} active={activeTab()} onChange={setActiveTab} />
                     <Editor
                         class="flex-1"

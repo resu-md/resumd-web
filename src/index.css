@@ -32,14 +32,14 @@ body {
     --color-white: var(--ios-white);
 
     /* Backgrounds (Base) */
-    --color-system-primary: var(--ios-bg-primary);
-    --color-system-secondary: var(--ios-bg-secondary);
-    --color-system-tertiary: var(--ios-bg-tertiary);
+    --color-system-primary: var(--macos-bg-primary);
+    --color-system-secondary: var(--macos-bg-secondary);
+    --color-system-tertiary: var(--macos-bg-tertiary);
 
     /* Backgrounds (Grouped) */
-    --color-system-grouped-primary: var(--ios-bg-grouped-primary);
-    --color-system-grouped-secondary: var(--ios-bg-grouped-secondary);
-    --color-system-grouped-tertiary: var(--ios-bg-grouped-tertiary);
+    --color-system-grouped-primary: var(--macos-bg-grouped-primary);
+    --color-system-grouped-secondary: var(--macos-bg-grouped-secondary);
+    --color-system-grouped-tertiary: var(--macos-bg-grouped-tertiary);
 
     /* Labels (Text Colors) */
     --color-label-primary: var(--ios-label-primary);
@@ -84,19 +84,19 @@ body {
     --ios-gray-3: #c7c7cc;
     --ios-gray-4: #d1d1d6;
     --ios-gray-5: #e5e5ea;
-    --ios-gray-6: #f2f2f7;
+    --ios-gray-6: #f0f0f0;
     --ios-black: #000000;
     --ios-white: #ffffff;
 
     /* Backgrounds */
-    --ios-bg-primary: #ffffff;
-    --ios-bg-secondary: #f2f2f7;
-    --ios-bg-tertiary: #ffffff;
+    --macos-bg-primary: #ffffff;
+    --macos-bg-secondary: #f6f6f6;
+    --macos-bg-tertiary: #efeff0;
 
     /* Backgrounds Grouped */
-    --ios-bg-grouped-primary: #f2f2f7;
-    --ios-bg-grouped-secondary: #ffffff;
-    --ios-bg-grouped-tertiary: #f2f2f7;
+    --macos-bg-grouped-primary: #f0f0f0;
+    --macos-bg-grouped-secondary: #ffffff;
+    --macos-bg-grouped-tertiary: #f0f0f0;
 
     /* Labels */
     --ios-label-primary: #000000;
@@ -104,7 +104,7 @@ body {
     --ios-label-tertiary: rgba(60, 60, 67, 0.3);
     --ios-label-quaternary: rgba(60, 60, 67, 0.18);
 
-    /* Fills */
+    /* Fills */ /* TODO: Not so transparent */
     --ios-fill-primary: rgba(120, 120, 120, 0.2);
     --ios-fill-secondary: rgba(120, 120, 128, 0.16);
     --ios-fill-tertiary: rgba(118, 118, 128, 0.12);
@@ -142,31 +142,31 @@ body {
         --ios-gray-3: #48484a;
         --ios-gray-4: #3a3a3c;
         --ios-gray-5: #2c2c2e;
-        --ios-gray-6: #1c1c1e;
+        --ios-gray-6: #1e1e1e;
         --ios-black: #000000;
         --ios-white: #ffffff;
 
         /* Backgrounds */
-        --ios-bg-primary: #000000;
-        --ios-bg-secondary: #1c1c1e;
-        --ios-bg-tertiary: #2c2c2e;
+        --macos-bg-primary: #1e1e1e;
+        --macos-bg-secondary: #282828;
+        --macos-bg-tertiary: #323232;
 
         /* Backgrounds Grouped */
-        --ios-bg-grouped-primary: #000000;
-        --ios-bg-grouped-secondary: #1c1c1e;
-        --ios-bg-grouped-tertiary: #2c2c2e;
+        --macos-bg-grouped-primary: #161616;
+        --macos-bg-grouped-secondary: #1e1e1e;
+        --macos-bg-grouped-tertiary: #262626;
 
         /* Labels */
         --ios-label-primary: #ffffff;
-        --ios-label-secondary: rgba(235, 235, 245, 0.6);
-        --ios-label-tertiary: rgba(235, 235, 245, 0.3);
-        --ios-label-quaternary: rgba(235, 235, 245, 0.16);
+        --ios-label-secondary: rgba(255, 255, 255, 0.65);
+        --ios-label-tertiary: rgba(255, 255, 255, 0.4);
+        --ios-label-quaternary: rgba(255, 255, 255, 0.2);
 
         /* Fills */
-        --ios-fill-primary: rgba(120, 120, 128, 0.36);
-        --ios-fill-secondary: rgba(120, 120, 128, 0.32);
-        --ios-fill-tertiary: rgba(118, 118, 128, 0.24);
-        --ios-fill-quaternary: rgba(118, 118, 128, 0.18);
+        --ios-fill-primary: rgba(255, 255, 255, 0.1);
+        --ios-fill-secondary: rgba(255, 255, 255, 0.08);
+        --ios-fill-tertiary: rgba(255, 255, 255, 0.05);
+        --ios-fill-quaternary: rgba(255, 255, 255, 0.03);
 
         /* Separators */
         --ios-separator: rgba(255, 255, 255, 0.17);

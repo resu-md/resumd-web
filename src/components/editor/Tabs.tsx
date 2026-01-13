@@ -7,10 +7,10 @@ export default function Tabs(props: { values: string[]; active: string; onChange
                 <button
                     type="button"
                     class={clsx(
-                        "border-separator h-9 border-r px-5 text-sm tracking-tight",
+                        "border-separator h-8.5 border-r px-4 text-sm tracking-tight",
                         value === props.active
-                            ? "bg-system-tertiary"
-                            : "hover:bg-system-tertiary/50 text-label-secondary",
+                            ? "bg-fill-quaternary"
+                            : "hover:bg-fill-quaternary/50 text-label-secondary",
                     )}
                     onClick={() => props.onChange(value)}
                 >
