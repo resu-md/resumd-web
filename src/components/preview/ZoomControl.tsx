@@ -31,7 +31,7 @@ export default function ZoomControl() {
             <div class="bg-separator h-4 w-px" />
 
             <button
-                class="active:bg-fill-quaternary focus-visible:bg-fill-quaternary flex h-7.5 w-7 items-center justify-center pl-0.5 hover:cursor-pointer focus:outline-none"
+                class="active:bg-fill-tertiary focus-visible:bg-fill-tertiary flex h-7.5 w-7 items-center justify-center pl-0.5 hover:cursor-pointer focus:outline-none"
                 onClick={handleZoomOut}
                 title="Zoom out"
             >
@@ -39,7 +39,7 @@ export default function ZoomControl() {
             </button>
 
             <button
-                class="active:bg-fill-quaternary focus-visible:bg-fill-quaternary flex h-7.5 w-7 items-center justify-center rounded-r-full pr-1.5 hover:cursor-pointer focus:outline-none"
+                class="active:bg-fill-tertiary focus-visible:bg-fill-tertiary flex h-7.5 w-7 items-center justify-center rounded-r-full pr-1.5 hover:cursor-pointer focus:outline-none"
                 onClick={handleZoomIn}
                 title="Zoom in"
             >
