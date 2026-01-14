@@ -50,7 +50,7 @@ export default function Previewer(props: { class: string; markdown: Accessor<str
 
     return (
         <div
-            class={clsx(props.class, "group relative flex flex-col")}
+            class={clsx(props.class, "group relative flex flex-col select-none")}
             tabIndex={0}
             onKeyDown={handleContainerKeyDown}
             onWheel={handleContainerWheel}
