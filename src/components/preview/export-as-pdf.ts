@@ -13,7 +13,15 @@ export function exportAsPdf(html: string, css: string, options?: { lang?: string
     const blob = new Blob([htmlContent], { type: "text/html" });
     const url = URL.createObjectURL(blob);
 
-    const printWindow = window.open(url, "_blank", "width=800,height=600");
+    // Calculate popup size based on screen and A4 dimensions
+    const a4WidthPx = 794; // A4 width at 96 DPI
+    const a4HeightPx = 1123; // A4 height at 96 DPI
+    const popupWidth = Math.min(Math.floor(screen.availWidth * 0.9), a4WidthPx);
+    const popupHeight = Math.min(Math.floor(screen.availHeight * 0.7), a4HeightPx);
+    const left = Math.floor((screen.availWidth - popupWidth) / 2);
+    const top = Math.floor((screen.availHeight - popupHeight) / 2);
+
+    const printWindow = window.open(url, "_blank", `width=${popupWidth},height=${popupHeight},left=${left},top=${top}`);
 
     if (!printWindow) {
         alert("Please allow popups to export as PDF");
