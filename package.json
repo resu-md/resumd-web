@@ -15,6 +15,7 @@
         "@tailwindcss/vite": "^4.1.17",
         "clsx": "^2.1.1",
         "front-matter": "^4.0.2",
+        "jszip": "^3.10.1",
         "marked": "^17.0.1",
         "monaco-editor": "^0.52.2",
         "pagedjs": "^0.4.3",

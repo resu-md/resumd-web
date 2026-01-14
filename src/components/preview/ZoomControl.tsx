@@ -25,7 +25,7 @@ export default function ZoomControl() {
     };
 
     return (
-        <div class="bg-fill-primary ring-separator flex h-7.5 w-fit items-center overflow-hidden rounded-full backdrop-blur-md">
+        <div class="bg-fill-primary ring-separator flex h-7.5 w-fit items-center overflow-hidden rounded-full backdrop-blur-2xl">
             <ZoomPercentageInput zoom={zoom} onZoomChange={setZoom} />
 
             <div class="bg-separator h-4 w-px" />
@@ -70,7 +70,7 @@ function ZoomPercentageInput(props: { zoom: Accessor<number>; onZoomChange: Sett
             value={props.zoom() + "%"}
             onBlur={(e) => handleSubmit(e.currentTarget.value)}
             onKeyDown={handleKeyDown}
-            class="mr-1 ml-2 h-7.5 w-12 pb-0.5 text-center text-sm outline-none"
+            class="mr-1 ml-1.5 h-7.5 w-12 pb-0.5 text-center text-sm outline-none"
         />
     );
 }

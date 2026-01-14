@@ -3,12 +3,14 @@ import clsx from "clsx";
 // Utils
 import { resolveMarkdown, type ParsedMarkdown } from "./parse-markdown";
 import { exportAsPdf } from "./export-as-pdf";
+import { exportAsZip } from "./export-as-zip";
 import { marked } from "marked";
 // Context
 import { useZoom, useZoomShortcuts } from "./ZoomContext";
 // Components
 import ZoomControl from "./ZoomControl";
 import PreviewPages from "./PreviewPages";
+import SaveDropdown from "./SaveDropdown";
 
 marked.use({
     tokenizer: {
@@ -34,6 +36,10 @@ export default function Previewer(props: { class: string; markdown: Accessor<str
         exportAsPdf(html(), props.css(), metadata());
     };
 
+    const handleDownloadZip = () => {
+        exportAsZip(props.markdown(), props.css(), metadata());
+    };
+
     const handleContainerKeyDown = (event: KeyboardEvent & { currentTarget: HTMLDivElement }) => {
         handleKeyboardEvent(event);
     };
@@ -44,7 +50,7 @@ export default function Previewer(props: { class: string; markdown: Accessor<str
 
     return (
         <div
-            class={clsx(props.class, "relative flex flex-col")}
+            class={clsx(props.class, "group relative flex flex-col")}
             tabIndex={0}
             onKeyDown={handleContainerKeyDown}
             onWheel={handleContainerWheel}
@@ -61,18 +67,16 @@ export default function Previewer(props: { class: string; markdown: Accessor<str
                 </div> */}
 
                 <div class="flex flex-[1_1_0%] justify-end gap-3 pr-2">
-                    <button
-                        class="bg-blue outline-blue focus-active:outline-2 flex h-9 cursor-pointer items-center rounded-full px-3.5 font-medium tracking-tight text-white outline-offset-2 backdrop-blur-md active:outline-2"
-                        onClick={handleExport}
-                        title="Export PDF"
-                    >
-                        <p>Export as PDF</p>
-                        {/* <IoDownloadOutline class="mr-3 ml-2 size-5" /> */}
-                    </button>
+                    <SaveDropdown onExportPdf={handleExport} onDownloadZip={handleDownloadZip} />
                 </div>
             </div>
 
-            <div class="absolute right-0 bottom-5 left-0 flex items-center justify-center">
+            <div
+                class={clsx(
+                    "absolute right-0 bottom-5 left-0 flex items-center justify-center",
+                    "opacity-0 transition-opacity delay-500 duration-200 group-hover:opacity-100 group-hover:delay-300",
+                )}
+            >
                 <ZoomControl />
             </div>
         </div>
