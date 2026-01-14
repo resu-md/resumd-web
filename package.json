@@ -10,6 +10,7 @@
         "format": "prettier --write ."
     },
     "dependencies": {
+        "@kobalte/core": "^0.13.11",
         "@solid-primitives/storage": "^4.3.3",
         "@solidjs/router": "^0.15.4",
         "@tailwindcss/vite": "^4.1.17",
