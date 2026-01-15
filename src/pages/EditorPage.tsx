@@ -4,10 +4,11 @@ import { makePersisted } from "@solid-primitives/storage";
 import markdownTemplate from "@/templates/refer.me/resume.md?raw";
 import cssTemplate from "@/templates/refer.me/theme.css?raw";
 // Components
+import { ZoomProvider } from "@/components/preview/ZoomContext";
 import Previewer from "@/components/preview/Previewer";
 import Editor from "@/components/editor/Editor";
 import Tabs from "@/components/editor/Tabs";
-import { ZoomProvider } from "@/components/preview/ZoomContext";
+import ResizablePane from "@/components/ResizablePane";
 
 export default function EditorPage() {
     const [activeTab, setActiveTab] = createSignal<"resume.md" | "theme.css">("resume.md");
@@ -16,7 +17,13 @@ export default function EditorPage() {
 
     return (
         <main class="bg-system-secondary/60 padding-r flex h-dvh w-dvw">
-            <div class="w-[47%] max-w-[1100px] p-3">
+            <ResizablePane
+                class="relative z-10 p-3 pr-0"
+                storageKey="resumd.editorWidth"
+                defaultWidth={47}
+                minWidth={25}
+                maxWidth={65}
+            >
                 <div class="shadow-primary bg-system-primary flex h-full flex-col overflow-hidden rounded-xl">
                     <Tabs values={["resume.md", "theme.css"]} active={activeTab()} onChange={setActiveTab} />
                     <Editor
@@ -38,7 +45,7 @@ export default function EditorPage() {
                         ]}
                     />
                 </div>
-            </div>
+            </ResizablePane>
             <ZoomProvider>
                 <Previewer class="flex-1" markdown={markdown} css={css} />
             </ZoomProvider>
