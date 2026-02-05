@@ -16,7 +16,7 @@ export default function EditorPage() {
     const [css, setCss] = makePersisted(createSignal(cssTemplate), { name: "resumd.css" });
 
     return (
-        <main class="bg-system-secondary/60 padding-r flex h-dvh w-dvw">
+        <main class="bg-system-secondary/60 dark:bg-system-secondary padding-r flex h-dvh w-dvw">
             <ResizablePane
                 class="relative z-10 p-3 pr-0"
                 storageKey="resumd.editorWidth"
@@ -24,7 +24,7 @@ export default function EditorPage() {
                 minWidth={25}
                 maxWidth={65}
             >
-                <div class="shadow-primary bg-system-primary flex h-full flex-col overflow-hidden rounded-xl">
+                <div class="shadow-primary bg-system-primary flex h-full flex-col overflow-hidden rounded-xl dark:shadow-none">
                     <Tabs values={["resume.md", "theme.css"]} active={activeTab()} onChange={setActiveTab} />
                     <Editor
                         class="flex-1"
