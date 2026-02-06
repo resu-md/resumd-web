@@ -9,8 +9,17 @@ import Previewer from "@/components/preview/Previewer";
 import Editor from "@/components/editor/Editor";
 import Tabs from "@/components/editor/Tabs";
 import ResizablePane from "@/components/ResizablePane";
+import EditorSessionGate from "@/components/editor/EditorSessionGate";
 
 export default function EditorPage() {
+    return (
+        <EditorSessionGate>
+            <EditorWorkspace />
+        </EditorSessionGate>
+    );
+}
+
+function EditorWorkspace() {
     const [activeTab, setActiveTab] = createSignal<"resume.md" | "theme.css">("resume.md");
     const [markdown, setMarkdown] = makePersisted(createSignal(markdownTemplate), { name: "resumd.markdown" });
     const [css, setCss] = makePersisted(createSignal(cssTemplate), { name: "resumd.css" });
