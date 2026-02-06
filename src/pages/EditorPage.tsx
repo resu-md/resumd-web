@@ -50,6 +50,41 @@ export default function EditorPage() {
         }
     });
 
+    const [isPushing, setIsPushing] = createSignal(false);
+
+    const handlePush = async () => {
+        if (!params.owner || !params.repo) return;
+
+        const message = prompt("Enter commit message (optional):");
+        if (message === null) return; // User cancelled
+
+        setIsPushing(true);
+        try {
+            const res = await fetch(`/api/github/repo/${params.owner}/${params.repo}/push`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    markdown: markdown(),
+                    css: css(),
+                    message: message || undefined // Let backend handle default if empty
+                })
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                alert(`Failed to push: ${err.error || res.statusText}`);
+                return;
+            }
+
+            alert("Successfully pushed to GitHub!");
+        } catch (e) {
+            console.error(e);
+            alert("Error pushing to GitHub");
+        } finally {
+            setIsPushing(false);
+        }
+    };
+
     return (
         <main class="bg-system-secondary/60 dark:bg-system-secondary padding-r flex h-dvh w-dvw">
             <ResizablePane
@@ -82,7 +117,15 @@ export default function EditorPage() {
                 </div>
             </ResizablePane>
             <ZoomProvider>
-                <Previewer class="flex-1" markdown={markdown} css={css} />
+                <Previewer
+                    class="flex-1"
+                    markdown={markdown}
+                    css={css}
+                    owner={params.owner}
+                    repo={params.repo}
+                    onPush={handlePush}
+                    isPushing={isPushing()}
+                />
             </ZoomProvider>
         </main>
     );

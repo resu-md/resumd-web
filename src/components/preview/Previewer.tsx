@@ -1,4 +1,5 @@
-import { createMemo, type Accessor } from "solid-js";
+import { createMemo, type Accessor, Show } from "solid-js";
+import { FaBrandsGithub } from "solid-icons/fa";
 import clsx from "clsx";
 // Utils
 import { resolveMarkdown, type ParsedMarkdown } from "./parse-markdown";
@@ -22,7 +23,15 @@ marked.use({
     },
 });
 
-export default function Previewer(props: { class: string; markdown: Accessor<string>; css: Accessor<string> }) {
+export default function Previewer(props: {
+    class: string;
+    markdown: Accessor<string>;
+    css: Accessor<string>;
+    owner?: string;
+    repo?: string;
+    onPush?: () => void;
+    isPushing?: boolean;
+}) {
     const { zoom } = useZoom();
     const { handleKeyboardEvent, handleWheelEvent } = useZoomShortcuts();
 
@@ -62,9 +71,27 @@ export default function Previewer(props: { class: string; markdown: Accessor<str
             </div>
 
             <div class="absolute top-3 right-0 left-0 flex items-center justify-between gap-3 px-3.5">
-                {/* <div class="rounded-full bg-black/15 px-2.5 py-1 text-sm backdrop-blur-md">
-                    <p>{metadata().title ?? "Resume"}.pdf</p>
-                </div> */}
+                <Show when={props.owner && props.repo}>
+                    <div class="text-system-foreground/50 flex items-center gap-1.5 rounded-full bg-white/50 px-2.5 py-1 text-sm font-medium backdrop-blur-md dark:bg-black/20">
+                        <FaBrandsGithub class="size-3.5" />
+                        <span class="opacity-50">github.com /</span>
+                        <span>{props.owner}</span>
+                        <span class="opacity-50">/</span>
+                        <span>{props.repo}</span>
+                    </div>
+                </Show>
+
+                <Show when={props.owner && props.repo && props.onPush}>
+                    <button
+                        type="button"
+                        onClick={props.onPush}
+                        disabled={props.isPushing}
+                        class="bg-system-primary text-label-primary shadow-primary hover:bg-system-secondary flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <FaBrandsGithub class="size-3.5" />
+                        <span>{props.isPushing ? "Pushing..." : "Push"}</span>
+                    </button>
+                </Show>
 
                 <div class="flex flex-[1_1_0%] justify-end gap-3 pr-2">
                     <SaveDropdown onExportPdf={handleExport} onDownloadZip={handleDownloadZip} />

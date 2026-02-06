@@ -397,14 +397,108 @@ app.get("/api/github/repo/:owner/:repo/file", async (req, res, next) => {
  * In the future, implement a single-commit multi-file update via Git Data API (create tree/commit/update ref),
  * or use createOrUpdateFileContents for per-file commits.
  */
-app.post("/api/github/repo/:owner/:repo/push", async (req, res) => {
-    res.status(501).json({
-        error: "Not implemented",
-        plan: {
-            approachA: "Git Data API: create blobs -> create tree -> create commit -> update ref (single commit).",
-            approachB: "repos.createOrUpdateFileContents per file (multiple commits)."
+app.post("/api/github/repo/:owner/:repo/push", async (req, res, next) => {
+    try {
+        const { owner, repo } = req.params;
+        const { markdown, css, message } = req.body; // Expects JSON body
+
+        if (typeof markdown !== "string" || typeof css !== "string") {
+            res.status(400).json({ error: "markdown and css content are required" });
+            return;
         }
-    });
+
+        const octokit = await requireOctokit(req, res);
+        await assertRepoAccessible(octokit, owner, repo);
+
+        // 1. Get current reference (usually heads/main or heads/master)
+        const repoInfo = await octokit.rest.repos.get({ owner, repo });
+        const defaultBranch = repoInfo.data.default_branch;
+        const refName = `heads/${defaultBranch}`;
+
+        const refData = await octokit.rest.git.getRef({
+            owner,
+            repo,
+            ref: refName,
+        });
+        const latestCommitSha = refData.data.object.sha;
+
+        // 2. Create blobs for the new content
+        const mdBlob = await octokit.rest.git.createBlob({
+            owner,
+            repo,
+            content: Buffer.from(markdown).toString("base64"),
+            encoding: "base64",
+        });
+
+        const cssBlob = await octokit.rest.git.createBlob({
+            owner,
+            repo,
+            content: Buffer.from(css).toString("base64"),
+            encoding: "base64",
+        });
+
+        // 3. Create a new tree
+        // We need to know the filenames. For now we try to detect them or default to common names if likely missing.
+        // Re-using detection logic is tricky without re-fetching tree. 
+        // Let's FETCH the current tree/files to know their paths, OR just overwrite "resume.md" and "resume.css" if we want to be opinionated.
+        // BUT, the user might have "Resume.md" or "style.css".
+        // Better: Expect the frontend to pass the filenames OR re-detect.
+        // Let's re-detect for safety.
+
+        const { md: mdPath, css: cssPath } = await detectResumeFiles(octokit, owner, repo, defaultBranch);
+
+        const targetMdPath = mdPath ?? "resume.md";
+        const targetCssPath = cssPath ?? "theme.css";
+
+        const tree = await octokit.rest.git.createTree({
+            owner,
+            repo,
+            base_tree: latestCommitSha,
+            tree: [
+                {
+                    path: targetMdPath,
+                    mode: "100644",
+                    type: "blob",
+                    sha: mdBlob.data.sha,
+                },
+                {
+                    path: targetCssPath,
+                    mode: "100644",
+                    type: "blob",
+                    sha: cssBlob.data.sha,
+                },
+            ],
+        });
+
+        // 4. Create a new commit
+        const newCommit = await octokit.rest.git.createCommit({
+            owner,
+            repo,
+            message: message || "Update resume via resumd",
+            tree: tree.data.sha,
+            parents: [latestCommitSha],
+        });
+
+        // 5. Update the reference
+        await octokit.rest.git.updateRef({
+            owner,
+            repo,
+            ref: refName,
+            sha: newCommit.data.sha,
+        });
+
+        res.json({
+            ok: true,
+            commit: newCommit.data.sha,
+            updated: {
+                markdown: targetMdPath,
+                css: targetCssPath
+            }
+        });
+
+    } catch (err) {
+        next(err);
+    }
 });
 
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
