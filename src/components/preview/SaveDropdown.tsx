@@ -13,13 +13,19 @@ export default function SaveDropdown(props: SaveDropdownProps) {
 
     return (
         <DropdownMenu open={isOpen()} onOpenChange={setIsOpen}>
-            <DropdownMenu.Trigger class="bg-blue outline-blue focus-active:outline-2 flex h-7 cursor-pointer items-center gap-1.25 rounded-lg py-1.5 pr-2 pl-2.5 font-medium tracking-tight text-white outline-offset-2 backdrop-blur-md">
-                <span>Save resume</span>
+            <DropdownMenu.Trigger class={clsx(
+                "flex h-7 cursor-pointer items-center justify-center gap-1.5 rounded-lg py-1.5 pr-1.5 pl-2.5",
+                "font-medium tracking-tight text-white",
+                "bg-linear-to-b from-[#4da3ff] to-[#007aff] backdrop-blur-md",
+                "shadow-[inset_0_0_1px_1px_#ffffff33,0_0_0_1px_#00000014,0_2px_2px_#0000000a,0_0_0_1px_#007aff]",
+                "outline-offset-4 focus-visible:outline-2 focus-visible:outline-[#007aff]"
+            )}>
+                <span>Export</span>
                 <IoChevronDownOutline size={16} class={clsx("translate-y-px", isOpen() && "rotate-180")} />
             </DropdownMenu.Trigger>
 
             <DropdownMenu.Portal>
-                <DropdownMenu.Content class="bg-fill-secondary shadow-tertiary z-10 mt-2 w-52 overflow-hidden rounded-lg p-1 backdrop-blur-xl">
+                <DropdownMenu.Content class="bg-fill-secondary dark:bg-system-tertiary/80 shadow-tertiary z-10 mt-2 w-52 overflow-hidden rounded-lg p-1 backdrop-blur-xl">
                     <DropdownMenu.Item
                         class="text-label-primary hover:bg-blue flex h-7 w-full cursor-pointer items-center gap-1 rounded-md pr-3 pl-0.5 text-left text-[13px] hover:text-white"
                         onSelect={props.onExportPdf}

@@ -25,7 +25,7 @@ export default function ZoomControl() {
     };
 
     return (
-        <div class="bg-fill-primary ring-separator flex h-7.5 w-fit items-center overflow-hidden rounded-full backdrop-blur-2xl">
+        <div class="bg-fill-primary dark:bg-system-tertiary/80 ring-separator flex h-7.5 w-fit items-center overflow-hidden rounded-full backdrop-blur-2xl">
             <ZoomPercentageInput zoom={zoom} onZoomChange={setZoom} />
 
             <div class="bg-separator h-4 w-px" />
