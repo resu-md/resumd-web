@@ -9,6 +9,7 @@ export default function App() {
     return (
         <Router base={import.meta.env.BASE_URL} root={ContextProviders}>
             <Route path="/" component={EditorPage} />
+            <Route path="/:owner/:repo" component={EditorPage} />
         </Router>
     );
 }

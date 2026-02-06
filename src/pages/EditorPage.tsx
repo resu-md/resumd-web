@@ -1,4 +1,5 @@
-import { createSignal } from "solid-js";
+import { createSignal, createEffect } from "solid-js";
+import { useParams } from "@solidjs/router";
 import { makePersisted } from "@solid-primitives/storage";
 // Constants
 import markdownTemplate from "@/templates/refer.me/resume.md?raw";
@@ -11,9 +12,43 @@ import Tabs from "@/components/editor/Tabs";
 import ResizablePane from "@/components/ResizablePane";
 
 export default function EditorPage() {
+    const params = useParams();
+
+    // Editor State
     const [activeTab, setActiveTab] = createSignal<"resume.md" | "theme.css">("resume.md");
     const [markdown, setMarkdown] = makePersisted(createSignal(markdownTemplate), { name: "resumd.markdown" });
     const [css, setCss] = makePersisted(createSignal(cssTemplate), { name: "resumd.css" });
+
+    // Fetch from GitHub if params are present
+    createEffect(async () => {
+        if (!params.owner || !params.repo) return;
+
+        try {
+            const res = await fetch(`/api/github/repo/${params.owner}/${params.repo}/resume`);
+
+            if (res.status === 401) {
+                const returnTo = `/${params.owner}/${params.repo}`;
+                window.location.href = `/api/github/authorize?owner=${params.owner}&repo=${params.repo}&returnTo=${returnTo}`;
+                return;
+            }
+
+            if (!res.ok) {
+                const err = await res.json();
+                console.error("Failed to fetch repo:", err);
+                alert(`Error fetching repo: ${err.error || res.statusText}`); // Simple error handling for now
+                return;
+            }
+
+            const data = await res.json();
+
+            // Only update if we have content
+            if (data.markdown?.content) setMarkdown(data.markdown.content);
+            if (data.stylesheet?.content) setCss(data.stylesheet.content);
+
+        } catch (error) {
+            console.error("Network error:", error);
+        }
+    });
 
     return (
         <main class="bg-system-secondary/60 dark:bg-system-secondary padding-r flex h-dvh w-dvw">
