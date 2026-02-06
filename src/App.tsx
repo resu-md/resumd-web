@@ -2,6 +2,7 @@ import { type JSXElement } from "solid-js";
 import { Route, Router } from "@solidjs/router";
 // Context
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { GithubAuthProvider } from "@/contexts/GithubAuthContext";
 // Pages
 import EditorPage from "@/pages/EditorPage";
 
@@ -15,5 +16,9 @@ export default function App() {
 }
 
 function ContextProviders(props: { children?: JSXElement }) {
-    return <ThemeProvider>{props.children}</ThemeProvider>;
+    return (
+        <GithubAuthProvider>
+            <ThemeProvider>{props.children}</ThemeProvider>
+        </GithubAuthProvider>
+    );
 }

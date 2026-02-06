@@ -377,6 +377,39 @@ app.get("/api/github/me", async (req, res, next) => {
     }
 });
 
+app.get("/api/github/installations", async (req, res, next) => {
+    try {
+        const octokit = await requireUserOctokit(req, res);
+        const installations = await octokit.rest.apps.listInstallationsForAuthenticatedUser();
+
+        const repos: Array<{ owner: string; repo: string; fullName: string; installationId: number }> = [];
+
+        for (const installation of installations.data.installations) {
+            if (installation.app_slug !== env.GITHUB_APP_SLUG) continue;
+
+            const { data } = await octokit.rest.apps.listInstallationReposForAuthenticatedUser({
+                installation_id: installation.id,
+                per_page: 100,
+            });
+
+            for (const repository of data.repositories) {
+                const fullName = repository.full_name ?? "";
+                const fallbackOwner = fullName.includes("/") ? fullName.split("/")[0] : "";
+                repos.push({
+                    owner: repository.owner?.login ?? fallbackOwner,
+                    repo: repository.name,
+                    fullName,
+                    installationId: installation.id,
+                });
+            }
+        }
+
+        res.json({ repos });
+    } catch (err) {
+        next(err);
+    }
+});
+
 app.get("/api/github/repo/:owner/:repo/resume", async (req, res, next) => {
     try {
         const { owner, repo } = req.params;
@@ -438,6 +471,80 @@ app.get("/api/github/repo/:owner/:repo/file", async (req, res, next) => {
     }
 });
 
+app.get("/api/github/repo/:owner/:repo/branches", async (req, res, next) => {
+    try {
+        const { owner, repo } = req.params;
+        const octokit = await requireUserOctokit(req, res);
+        await assertRepoAccessible(octokit, owner, repo);
+
+        const repoInfo = await octokit.rest.repos.get({ owner, repo });
+        const defaultBranch = repoInfo.data.default_branch;
+
+        const branches = await octokit.paginate(octokit.rest.repos.listBranches, {
+            owner,
+            repo,
+            per_page: 100,
+        });
+
+        res.json({
+            owner,
+            repo,
+            defaultBranch,
+            branches: branches.map((branch: any) => ({
+                name: branch.name as string,
+                commitSha: branch.commit?.sha as string | undefined,
+                isDefault: branch.name === defaultBranch,
+            })),
+        });
+    } catch (err) {
+        next(err);
+    }
+});
+
+app.post("/api/github/repo/:owner/:repo/branches", async (req, res, next) => {
+    try {
+        const { owner, repo } = req.params;
+        const rawName = typeof req.body?.name === "string" ? req.body.name.trim() : "";
+        const rawFrom = typeof req.body?.from === "string" ? req.body.from.trim() : "";
+
+        if (!rawName) {
+            res.status(400).json({ error: "Branch name is required" });
+            return;
+        }
+        if (rawName.includes(" ") || rawName.includes("..") || rawName.startsWith("/") || rawName.endsWith("/")) {
+            res.status(400).json({ error: "Invalid branch name" });
+            return;
+        }
+
+        const octokit = await requireUserOctokit(req, res);
+        await assertRepoAccessible(octokit, owner, repo);
+
+        const repoInfo = await octokit.rest.repos.get({ owner, repo });
+        const defaultBranch = repoInfo.data.default_branch;
+        const baseBranch = rawFrom || defaultBranch;
+
+        const baseRef = await octokit.rest.git.getRef({ owner, repo, ref: `heads/${baseBranch}` });
+
+        const newRefName = `refs/heads/${rawName}`;
+        await octokit.rest.git.createRef({ owner, repo, ref: newRefName, sha: baseRef.data.object.sha });
+
+        res.json({
+            ok: true,
+            branch: {
+                name: rawName,
+                commitSha: baseRef.data.object.sha,
+                isDefault: false,
+            },
+        });
+    } catch (err: any) {
+        if (err?.status === 422) {
+            res.status(422).json({ error: "Branch already exists" });
+            return;
+        }
+        next(err);
+    }
+});
+
 /**
  * PUSH (now commits as <app-slug>[bot])
  *
@@ -449,7 +556,7 @@ app.get("/api/github/repo/:owner/:repo/file", async (req, res, next) => {
 app.post("/api/github/repo/:owner/:repo/push", async (req, res, next) => {
     try {
         const { owner, repo } = req.params;
-        const { markdown, css, message } = req.body;
+        const { markdown, css, message, branch: requestedBranch } = req.body;
 
         if (typeof markdown !== "string" || typeof css !== "string") {
             res.status(400).json({ error: "markdown and css content are required" });
@@ -466,7 +573,10 @@ app.post("/api/github/repo/:owner/:repo/push", async (req, res, next) => {
         // Get default branch (bot or user both work; use bot for consistency)
         const repoInfo = await botOctokit.rest.repos.get({ owner, repo });
         const defaultBranch = repoInfo.data.default_branch;
-        const refName = `heads/${defaultBranch}`;
+        const targetBranch = typeof requestedBranch === "string" && requestedBranch.trim().length
+            ? requestedBranch.trim()
+            : defaultBranch;
+        const refName = `heads/${targetBranch}`;
 
         // Get latest commit SHA
         const refData = await botOctokit.rest.git.getRef({ owner, repo, ref: refName });
@@ -496,7 +606,7 @@ app.post("/api/github/repo/:owner/:repo/push", async (req, res, next) => {
         });
 
         // Detect existing filenames (or fall back)
-        const { md: mdPath, css: cssPath } = await detectResumeFiles(botOctokit, owner, repo, defaultBranch);
+        const { md: mdPath, css: cssPath } = await detectResumeFiles(botOctokit, owner, repo, targetBranch);
         const targetMdPath = mdPath ?? "resume.md";
         const targetCssPath = cssPath ?? "style.css";
 
@@ -533,6 +643,7 @@ app.post("/api/github/repo/:owner/:repo/push", async (req, res, next) => {
             commit: newCommit.data.sha,
             updated: { markdown: targetMdPath, css: targetCssPath },
             actor: `${env.GITHUB_APP_SLUG}[bot]`,
+            branch: targetBranch,
         });
     } catch (err) {
         next(err);
