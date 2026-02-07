@@ -29,10 +29,10 @@ export default function Tabs(props: { values: string[]; active: string; onChange
                 <button
                     type="button"
                     class={clsx(
-                        "h-8.5 border-[#E3E3E3] px-4 text-sm tracking-tight dark:border-none",
+                        "h-8 border-[#E3E3E3] px-4 text-sm tracking-tight dark:border-none flex-1 ",
                         value === props.active
                             ? "bg-system-primary border-r pb-px dark:pb-0"
-                            : "text-label-secondary border-b",
+                            : "text-label-secondary border-b hover:bg-fill-quaternary",
                         value === props.active && index !== 0 && "border-l",
                     )}
                     onClick={() => props.onChange(value)}
@@ -40,7 +40,7 @@ export default function Tabs(props: { values: string[]; active: string; onChange
                     {String(value)}
                 </button>
             ))}
-            <div class="flex-1 border-b border-[#E3E3E3] dark:border-none" />
+            {/* <div class="flex-1 border-b border-[#E3E3E3] dark:border-none" /> */}
         </div>
     );
 }
