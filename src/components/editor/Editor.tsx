@@ -47,6 +47,7 @@ export default function Editor(props: { class?: string; activeTabId: string; tab
             scrollBeyondLastLine: false,
             wordWrap: "on",
             theme: theme() === "dark" ? "vs-dark" : "vs-light",
+            lineNumbersMinChars: 4,
         });
 
         // Listen to content changes
