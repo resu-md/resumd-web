@@ -157,12 +157,12 @@ body {
         /* --macos-bg-primary: #000000;
         --macos-bg-secondary: #1c1c1e;
         --macos-bg-tertiary: #2c2c2e; */
-        /* --macos-bg-primary: #1c1c1e;
+        --macos-bg-primary: #1c1c1e;
         --macos-bg-secondary: #2c2c2e;
-        --macos-bg-tertiary: #3a3a3c; */
-        --macos-bg-primary: #1c1c1c;
+        --macos-bg-tertiary: #3a3a3c;
+        /* --macos-bg-primary: #1c1c1c;
         --macos-bg-secondary: #2c2c2c;
-        --macos-bg-tertiary: #3a3a3a;
+        --macos-bg-tertiary: #3a3a3a; */
 
         /* Backgrounds Grouped */
         --macos-bg-grouped-primary: #161616;

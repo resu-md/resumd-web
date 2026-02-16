@@ -7,8 +7,8 @@ import cssTemplate from "@/templates/refer.me/theme.css?raw";
 import { ZoomProvider } from "@/components/preview/ZoomContext";
 import Previewer from "@/components/preview/Previewer";
 import Editor from "@/components/editor/Editor";
-import Tabs from "@/components/editor/Tabs";
 import ResizablePane from "@/components/ResizablePane";
+import Tabs from "@/components/editor/Tabs";
 
 export default function EditorPage() {
     const [activeTab, setActiveTab] = createSignal<"resume.md" | "theme.css">("resume.md");
@@ -16,7 +16,7 @@ export default function EditorPage() {
     const [css, setCss] = makePersisted(createSignal(cssTemplate), { name: "resumd.css" });
 
     return (
-        <main class="bg-system-secondary/60 dark:bg-system-secondary padding-r flex h-dvh w-dvw">
+        <main class="bg-system-secondary padding-r flex h-dvh w-dvw">
             <ResizablePane
                 class="relative z-10 p-3 pr-0"
                 storageKey="resumd.editorWidth"
@@ -24,7 +24,7 @@ export default function EditorPage() {
                 minWidth={25}
                 maxWidth={65}
             >
-                <div class="shadow-primary bg-system-primary flex h-full flex-col overflow-hidden rounded-xl dark:shadow-none">
+                <div class="border-gray-5 dark:border-gray-4 bg-system-primary mt-5.5 flex h-[calc(100%-1.125rem)] flex-col overflow-hidden rounded-2xl border">
                     <Tabs values={["resume.md", "theme.css"]} active={activeTab()} onChange={setActiveTab} />
                     <Editor
                         class="flex-1"
@@ -44,6 +44,7 @@ export default function EditorPage() {
                             },
                         ]}
                     />
+                    {/* <div class="flex flex-1 items-center justify-center text-sm text-gray-500">Editor coming soon!</div> */}
                 </div>
             </ResizablePane>
             <ZoomProvider>
