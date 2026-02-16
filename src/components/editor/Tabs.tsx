@@ -1,21 +1,18 @@
 import clsx from "clsx";
 
-// https://ionicframework.com/docs/api/segment
 // export default function Tabs(props: { values: string[]; active: string; onChange: (value: string) => void }) {
 //     return (
-//         <div class="bg-fill-secondary mx-auto my-2 flex w-fit rounded-lg p-0.5">
+//         <div class="proeminent-button flex h-11 w-fit rounded-full p-1 absolute z-100 left-1/2 -translate-x-1/2 -translate-y-1/2">
 //             {props.values.map((value) => (
 //                 <button
-//                     type="button"
 //                     class={clsx(
-//                         "h-6 rounded-md px-3 text-sm tracking-tight",
-//                         value === props.active
-//                             ? "bg-system-primary shadow-primary text-label-primary"
-//                             : "text-label-secondary",
+//                         "flex h-full items-center justify-center rounded-full px-6 font-medium font-mono text-sm",
+//                         value === props.active &&
+//                             "shadow-0_2px_20px_rgba(0,0,0,0.06) bg-fill-tertiary text-blue",
 //                     )}
 //                     onClick={() => props.onChange(value)}
 //                 >
-//                     {String(value)}
+//                     {value}
 //                 </button>
 //             ))}
 //         </div>
@@ -24,23 +21,19 @@ import clsx from "clsx";
 
 export default function Tabs(props: { values: string[]; active: string; onChange: (value: string) => void }) {
     return (
-        <div class="bg-system-tertiary flex w-full">
-            {props.values.map((value, index) => (
+        <div class="proeminent-button backdrop-blur-md flex h-11 w-fit rounded-full p-1 absolute z-100 left-1/2 -translate-x-1/2 -translate-y-1/2">
+            {props.values.map((value) => (
                 <button
-                    type="button"
                     class={clsx(
-                        "h-8 border-[#E3E3E3] px-4 text-sm tracking-tight dark:border-none flex-1 ",
-                        value === props.active
-                            ? "bg-system-primary border-r pb-px dark:pb-0"
-                            : "text-label-secondary border-b hover:bg-fill-quaternary",
-                        value === props.active && index !== 0 && "border-l",
+                        "flex h-full items-center justify-center rounded-full px-6 text-sm",
+                        value === props.active &&
+                            "shadow-0_2px_20px_rgba(0,0,0,0.06) bg-white text-primary dark:bg-[#6C6C71] shadow-secondary",
                     )}
                     onClick={() => props.onChange(value)}
                 >
-                    {String(value)}
+                    {value}
                 </button>
             ))}
-            {/* <div class="flex-1 border-b border-[#E3E3E3] dark:border-none" /> */}
         </div>
     );
 }
