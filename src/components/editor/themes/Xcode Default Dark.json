@@ -5,7 +5,7 @@
     "activityBar.background": "#2a2c2f",
     "activityBar.border": "#000000",
     "activityBar.foreground": "#dfdfdf",
-    "breadcrumb.background": "#1c1f21",
+    "breadcrumb.background": "#1c1c1e",
     "breadcrumb.focusForeground": "#dcdddd",
     "breadcrumb.foreground": "#dcdddd",
     "debugIcon.breakpointCurrentStackframeForeground": "#007aff",

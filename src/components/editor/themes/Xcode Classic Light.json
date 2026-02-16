@@ -3,7 +3,10 @@
   "type": "light",
   "colors": {
     "list.focusForeground": "#000000",
-    "scrollbar.shadow": "#ffffff00",
+    "scrollbar.shadow": "#00000040",
+    "scrollbarSlider.background": "#c0c0c050",
+    "scrollbarSlider.hoverBackground": "#c0c0c080",
+    "scrollbarSlider.activeBackground": "#c0c0c0",
     "tab.activeBorder": "#ffffff",
     "widget.shadow": "#ffffff00",
     "activityBar.border": "#D9D7D5",
