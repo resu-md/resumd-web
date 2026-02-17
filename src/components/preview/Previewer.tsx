@@ -60,7 +60,7 @@ export default function Previewer(props: { class: string; markdown: Accessor<str
         >
             <div class="flex-1">
                 <div style={{ zoom: `${zoom()}%`, height: "100%" }}>
-                    <PreviewPages html={html()} css={props.css()} />
+                    <PreviewPages html={html()} css={props.css()} zoom={zoom()} />
                 </div>
             </div>
 

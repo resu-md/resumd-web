@@ -4,7 +4,7 @@ import previewTemplate from "./pdf-preview-template.html?raw";
 
 const PAGED_JS_URL = "https://unpkg.com/pagedjs/dist/paged.js"; // TODO: Bundle locally
 
-export default function PreviewPages(props: { html: string; css: string }) {
+export default function PreviewPages(props: { html: string; css: string; zoom: number }) {
     let iframeRef: HTMLIFrameElement | undefined;
     let detachInputHandlers: (() => void) | undefined;
     const { handleKeyboardEvent, handleWheelEvent } = useZoomShortcuts();
@@ -36,6 +36,11 @@ export default function PreviewPages(props: { html: string; css: string }) {
     const handleIframeLoad = () => {
         detachInputHandlers?.();
         attachInputHandlers();
+
+        const doc = iframeRef?.contentDocument;
+        if (doc) {
+            doc.documentElement.style.setProperty("--preview-zoom-scale", `${props.zoom / 100}`);
+        }
     };
 
     onMount(() => {
@@ -70,6 +75,13 @@ export default function PreviewPages(props: { html: string; css: string }) {
         };
 
         triggerRender();
+    });
+
+    // Update zoom scale CSS variable when zoom changes
+    createEffect(() => {
+        const iframe = iframeRef;
+        if (!iframe?.contentDocument) return;
+        iframe.contentDocument.documentElement.style.setProperty("--preview-zoom-scale", `${props.zoom / 100}`);
     });
 
     return (
