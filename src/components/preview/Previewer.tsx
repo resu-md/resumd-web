@@ -80,7 +80,7 @@ export default function Previewer(props: { class: string; markdown: Accessor<str
 
 function PreviewToolbar(props: { onExportPdf: () => void; onDownloadZip: () => void }) {
     return (
-        <div class="absolute top-3 right-0 left-0 flex items-center justify-between gap-3 px-3.5 py-1">
+        <div class="absolute top-6 right-0 left-0 flex items-center justify-between gap-3 px-3.5 pr-5">
             <Show when={false}>
                 <div class="flex flex-[1_1_0%] items-center gap-2">
                     <button class="proeminent-button text-primary h-8.5 rounded-full px-4 font-mono">
