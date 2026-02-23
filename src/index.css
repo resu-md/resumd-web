@@ -192,6 +192,11 @@ body {
     }
 }
 
+*:focus,
+*:focus-visible {
+    outline-color: var(--ios-blue);
+}
+
 button {
     cursor: pointer;
 }
@@ -205,9 +210,6 @@ button {
     color: var(--color-black);
     transition: box-shadow 50ms ease;
     outline-offset: 2px;
-}
-.proeminent-button:focus-visible {
-    outline: 2px solid var(--ios-label-primary);
 }
 @media (prefers-color-scheme: dark) {
     .proeminent-button {
