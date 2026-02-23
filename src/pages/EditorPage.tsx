@@ -24,7 +24,7 @@ export default function EditorPage() {
                 minWidth={25}
                 maxWidth={65}
             >
-                <div class="border-gray-5 dark:border-gray-4 bg-system-primary mt-5.5 flex h-[calc(100%-1.125rem)] flex-col overflow-hidden rounded-2xl border">
+                <div class="border-gray-5 dark:border-gray-4 bg-system-primary mt-4.5 flex h-[calc(100%-1.125rem)] flex-col overflow-hidden rounded-2xl border">
                     <Tabs values={["resume.md", "theme.css"]} active={activeTab()} onChange={setActiveTab} />
                     <Editor
                         class="flex-1"
