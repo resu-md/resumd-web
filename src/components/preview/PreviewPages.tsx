@@ -1,13 +1,62 @@
 import { createEffect, onCleanup, onMount } from "solid-js";
-import { useZoomShortcuts } from "./ZoomContext";
+import { useZoom, useZoomShortcuts } from "./ZoomContext";
 import previewTemplate from "./pdf-preview-template.html?raw";
 
 const PAGED_JS_URL = "https://unpkg.com/pagedjs/dist/paged.js"; // TODO: Bundle locally
 
 export default function PreviewPages(props: { html: string; css: string; zoom: number }) {
+    const { handleKeyboardEvent, handleWheelEvent } = useZoomShortcuts();
+    const { zoom, setZoom } = useZoom();
+
     let iframeRef: HTMLIFrameElement | undefined;
     let detachInputHandlers: (() => void) | undefined;
-    const { handleKeyboardEvent, handleWheelEvent } = useZoomShortcuts();
+    let initialZoomApplied = false;
+
+    /**
+     * Adjust the initial value of zoom to make the page fit the iframe viewport. Called uppon iframe's initialization.
+     */
+    const applyInitialFitZoom = () => {
+        if (initialZoomApplied) return;
+
+        const iframe = iframeRef;
+        if (!iframe) {
+            requestAnimationFrame(applyInitialFitZoom);
+            return;
+        }
+
+        const doc = iframe.contentDocument;
+        if (!doc) {
+            requestAnimationFrame(applyInitialFitZoom);
+            return;
+        }
+
+        const page = doc.querySelector(".pagedjs_page") as HTMLElement | null;
+        const pagesContainer = doc.querySelector(".pagedjs_pages") as HTMLElement | null;
+        if (!page) {
+            requestAnimationFrame(applyInitialFitZoom);
+            return;
+        }
+
+        const pageRect = page.getBoundingClientRect();
+        const containerStyles = pagesContainer ? window.getComputedStyle(pagesContainer) : null;
+        const containerMarginTop = containerStyles ? parseFloat(containerStyles.marginTop) || 0 : 0;
+        const containerMarginBottom = containerStyles ? parseFloat(containerStyles.marginBottom) || 0 : 0;
+        const totalPageHeight = pageRect.height + containerMarginTop + containerMarginBottom;
+        const viewportWidth = iframe.clientWidth;
+        const viewportHeight = iframe.clientHeight;
+        if (!pageRect.width || !totalPageHeight || !viewportWidth || !viewportHeight) return;
+
+        initialZoomApplied = true;
+
+        const fitScale = Math.min(viewportWidth / pageRect.width, viewportHeight / totalPageHeight);
+        if (!Number.isFinite(fitScale)) return;
+
+        const paddingFactor = 0.98;
+        const fitZoom = Math.min(100, Math.floor(fitScale * paddingFactor * 100));
+        if (fitZoom > 0 && fitZoom < zoom()) {
+            setZoom(fitZoom);
+        }
+    };
 
     const attachInputHandlers = () => {
         const iframe = iframeRef;
@@ -44,12 +93,9 @@ export default function PreviewPages(props: { html: string; css: string; zoom: n
     };
 
     onMount(() => {
-        const iframe = iframeRef;
-        if (!iframe) return;
-
-        iframe.addEventListener("load", handleIframeLoad);
-        // Initialize the iframe with the basic structure and the PagedJS library
-        iframe.srcdoc = previewTemplate.replace("{{PAGED_JS_URL}}", PAGED_JS_URL);
+        if (!iframeRef) return;
+        iframeRef.addEventListener("load", handleIframeLoad);
+        iframeRef.srcdoc = previewTemplate.replace("{{PAGED_JS_URL}}", PAGED_JS_URL);
     });
 
     onCleanup(() => {
@@ -75,6 +121,7 @@ export default function PreviewPages(props: { html: string; css: string; zoom: n
         };
 
         triggerRender();
+        applyInitialFitZoom();
     });
 
     // Update zoom scale CSS variable when zoom changes

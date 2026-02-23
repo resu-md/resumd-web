@@ -8,7 +8,6 @@
                 --preview-zoom-scale: 1;
             }
 
-            /* Base styles for the preview container */
             body {
                 margin: 0;
                 padding: 0;
@@ -20,8 +19,7 @@
                 top: 0;
                 left: 0;
                 visibility: hidden;
-                /* Move it out of view to avoid scrollbar flickering during render */
-                transform: translateX(-10000px);
+                transform: translateX(-10000px); /* move it out of view to avoid scrollbar flickering during render */
             }
 
             .preview-visible {
@@ -36,8 +34,7 @@
                 display: flex;
                 flex-direction: column;
                 align-items: center;
-                /* Top margin is calculated from zoom scale to be the same visually at any zoom level */
-                margin: calc(4.5rem / var(--preview-zoom-scale, 1)) 0 5px 0;
+                margin: calc(3.5rem / var(--preview-zoom-scale, 1)) 0 5px 0; /* top margin is calculated from zoom scale to be the same visually at any zoom level */
             }
             .pagedjs_page {
                 margin: 5px auto;
