@@ -22,7 +22,8 @@
         "pagedjs": "^0.4.3",
         "solid-icons": "^1.1.0",
         "solid-js": "^1.9.10",
-        "tailwindcss": "^4.1.17"
+        "tailwindcss": "^4.1.17",
+        "vite-plugin-static-copy": "^3.2.0"
     },
     "devDependencies": {
         "@types/node": "^24.10.1",

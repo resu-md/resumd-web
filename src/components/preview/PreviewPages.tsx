@@ -2,7 +2,7 @@ import { createEffect, onCleanup, onMount } from "solid-js";
 import { useZoom, useZoomShortcuts } from "./ZoomContext";
 import previewTemplate from "./pdf-preview-template.html?raw";
 
-const PAGED_JS_URL = "https://unpkg.com/pagedjs/dist/paged.js"; // TODO: Bundle locally
+const PAGED_JS_URL = `${import.meta.env.BASE_URL}vendor/pagedjs/paged.js`;
 
 export default function PreviewPages(props: { html: string; css: string; zoom: number }) {
     const { handleKeyboardEvent, handleWheelEvent } = useZoomShortcuts();
