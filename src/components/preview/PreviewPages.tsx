@@ -1,6 +1,6 @@
 import { createEffect, onCleanup, onMount } from "solid-js";
 import { useZoom, useZoomShortcuts } from "./ZoomContext";
-import previewTemplate from "./pdf-preview-template.html?raw";
+import previewTemplate from "./pdf-preview.html?raw";
 
 const PAGED_JS_URL = `${import.meta.env.BASE_URL}vendor/pagedjs/paged.js`;
 

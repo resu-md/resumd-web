@@ -1,4 +1,4 @@
-import printTemplate from "./pdf-print-template.html?raw";
+import printTemplate from "./pdf-print.html?raw";
 
 export function exportAsPdf(html: string, css: string, options?: { lang?: string; title?: string }) {
     const lang = sanitizeLang(options?.lang) ?? "";
