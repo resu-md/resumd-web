@@ -2,7 +2,7 @@
 <html>
     <head>
         <meta charset="utf-8" />
-        <title>PagedJS Preview</title>
+        <title>Resume PDF preview</title>
         <style>
             :root {
                 --preview-zoom-scale: 1;
@@ -21,7 +21,6 @@
                 visibility: hidden;
                 transform: translateX(-10000px); /* move it out of view to avoid scrollbar flickering during render */
             }
-
             .preview-visible {
                 position: relative;
                 visibility: visible;
@@ -34,7 +33,8 @@
                 display: flex;
                 flex-direction: column;
                 align-items: center;
-                margin: calc(3.5rem / var(--preview-zoom-scale, 1)) 0 5px 0; /* top margin is calculated from zoom scale to be the same visually at any zoom level */
+                /* Top margin is calculated from zoom scale to be the same visually at any zoom level */
+                margin: calc(4.5rem / var(--preview-zoom-scale, 1)) 0 5px 0;
             }
             .pagedjs_page {
                 margin: 5px auto;
