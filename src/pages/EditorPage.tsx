@@ -1,8 +1,8 @@
-import { createSignal } from "solid-js";
-import { makePersisted } from "@solid-primitives/storage";
+import { createMemo, createSignal, onCleanup } from "solid-js";
 // Constants
 import markdownTemplate from "@/templates/refer.me/resume.md?raw";
 import cssTemplate from "@/templates/refer.me/theme.css?raw";
+import { createTabDocumentSession } from "@/lib/workspace";
 // Components
 import { ZoomProvider } from "@/components/preview/ZoomContext";
 import Previewer from "@/components/preview/Previewer";
@@ -12,8 +12,41 @@ import Tabs from "@/components/editor/Tabs";
 
 export default function EditorPage() {
     const [activeTab, setActiveTab] = createSignal<"resume.md" | "theme.css">("resume.md");
-    const [markdown, setMarkdown] = makePersisted(createSignal(markdownTemplate), { name: "resumd.markdown" });
-    const [css, setCss] = makePersisted(createSignal(cssTemplate), { name: "resumd.css" });
+    const tabSession = createTabDocumentSession({
+        defaultMarkdown: markdownTemplate,
+        defaultCss: cssTemplate,
+    });
+
+    const [markdown, setMarkdown] = createSignal(tabSession.markdown);
+    const [css, setCss] = createSignal(tabSession.css);
+    const [activeDocumentId, setActiveDocumentId] = createSignal(tabSession.getActiveDocumentId());
+    const [documents, setDocuments] = createSignal(tabSession.getDocuments());
+
+    const currentDocument = createMemo(() => documents().find((document) => document.id === activeDocumentId()));
+
+    const setAndPersistMarkdown = (value: string) => {
+        setMarkdown(value);
+        tabSession.persistMarkdown(value);
+    };
+
+    const setAndPersistCss = (value: string) => {
+        setCss(value);
+        tabSession.persistCss(value);
+    };
+
+    const handleSelectDocument = (documentId: string) => {
+        const content = tabSession.switchDocument(documentId);
+        if (!content) return;
+
+        setActiveDocumentId(documentId);
+        setDocuments(tabSession.getDocuments());
+        setMarkdown(content.markdown);
+        setCss(content.css);
+    };
+
+    onCleanup(() => {
+        tabSession.dispose();
+    });
 
     return (
         <main class="bg-system-secondary padding-r flex h-dvh w-dvw">
@@ -34,13 +67,13 @@ export default function EditorPage() {
                                 id: "resume.md",
                                 language: "markdown",
                                 value: markdown(),
-                                onChange: setMarkdown,
+                                onChange: setAndPersistMarkdown,
                             },
                             {
                                 id: "theme.css",
                                 language: "css",
                                 value: css(),
-                                onChange: setCss,
+                                onChange: setAndPersistCss,
                             },
                         ]}
                     />
@@ -48,7 +81,15 @@ export default function EditorPage() {
                 </div>
             </ResizablePane>
             <ZoomProvider>
-                <Previewer class="flex-1" markdown={markdown} css={css} />
+                <Previewer
+                    class="flex-1"
+                    markdown={markdown}
+                    css={css}
+                    activeDocumentId={activeDocumentId()}
+                    documents={documents()}
+                    currentDocumentName={currentDocument()?.name ?? "Resume"}
+                    onSelectDocument={handleSelectDocument}
+                />
             </ZoomProvider>
         </main>
     );

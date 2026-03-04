@@ -1,14 +1,15 @@
-import { createMemo, Show, type Accessor } from "solid-js";
+import { For, Show, createMemo, type Accessor } from "solid-js";
 import clsx from "clsx";
 // Utils
 import { resolveMarkdown, type ParsedMarkdown } from "./parse-markdown";
 import { exportAsPdf } from "./export-as-pdf";
 import { exportAsZip } from "./export-as-zip";
 import { marked } from "marked";
+import type { WorkspaceDocument } from "@/lib/workspace";
 // Context
 import { useZoom, useZoomShortcuts } from "./ZoomContext";
 // Assets
-import { FiChevronDown, FiGitBranch } from "solid-icons/fi";
+import { FiChevronDown } from "solid-icons/fi";
 // Components
 import ZoomControl from "./ZoomControl";
 import PreviewPages from "./PreviewPages";
@@ -25,7 +26,15 @@ marked.use({
     },
 });
 
-export default function Previewer(props: { class: string; markdown: Accessor<string>; css: Accessor<string> }) {
+export default function Previewer(props: {
+    class: string;
+    markdown: Accessor<string>;
+    css: Accessor<string>;
+    activeDocumentId: string;
+    currentDocumentName: string;
+    documents: WorkspaceDocument[];
+    onSelectDocument: (documentId: string) => void;
+}) {
     const { zoom } = useZoom();
     const { handleKeyboardEvent, handleWheelEvent } = useZoomShortcuts();
 
@@ -34,6 +43,7 @@ export default function Previewer(props: { class: string; markdown: Accessor<str
     const metadata = createMemo(() => parsedMarkdown().metadata, undefined, {
         equals: (prev, next) => prev.title === next.title && prev.lang === next.lang,
     });
+    const currentResumeTitle = createMemo(() => metadata().title || props.currentDocumentName);
 
     const handleContainerKeyDown = (event: KeyboardEvent & { currentTarget: HTMLDivElement }) => {
         handleKeyboardEvent(event);
@@ -64,7 +74,14 @@ export default function Previewer(props: { class: string; markdown: Accessor<str
                 </div>
             </div>
 
-            <PreviewToolbar onExportPdf={handleExportPdf} onDownloadZip={handleDownloadZip} />
+            <PreviewToolbar
+                onExportPdf={handleExportPdf}
+                onDownloadZip={handleDownloadZip}
+                activeDocumentId={props.activeDocumentId}
+                documents={props.documents}
+                currentDocumentTitle={currentResumeTitle()}
+                onSelectDocument={props.onSelectDocument}
+            />
 
             <div
                 class={clsx(
@@ -78,51 +95,65 @@ export default function Previewer(props: { class: string; markdown: Accessor<str
     );
 }
 
-function PreviewToolbar(props: { onExportPdf: () => void; onDownloadZip: () => void }) {
+function PreviewToolbar(props: {
+    onExportPdf: () => void;
+    onDownloadZip: () => void;
+    activeDocumentId: string;
+    currentDocumentTitle: string;
+    documents: WorkspaceDocument[];
+    onSelectDocument: (documentId: string) => void;
+}) {
     return (
-        <div class="absolute top-3.5 right-0 left-0 flex items-center justify-between gap-3 px-3.5 pr-5">
-            <Show when={false}>
-                <div class="flex flex-[1_1_0%] items-center gap-2">
-                    <button class="proeminent-button text-primary h-8.5 rounded-full px-4 font-mono">
-                        github.com<span class="text-label-tertiary px-1.5">/</span>andrerocco
-                    </button>
-                    <button class="proeminent-button text-primary flex h-8.5 items-center gap-1 rounded-full font-mono">
-                        <span class="ml-3 flex items-center gap-1.5">
-                            <FiGitBranch class="text-green" />
-                            main
-                        </span>
-                        <FiChevronDown class="text-label-tertiary mr-2 size-5.5 translate-y-px" />
-                    </button>
-                    <div class="ml-1 flex gap-1 font-mono text-sm font-medium">
-                        <span class="text-green">+20</span>
-                        <span class="text-red">-3</span>
-                    </div>
-                </div>
-            </Show>
+        <div class="absolute top-4 right-0 left-0 flex items-center justify-between gap-3 px-5">
+            <div class="flex flex-[1_1_0%] items-center gap-1.5"></div>
 
-            <div class="flex flex-[1_1_0%] justify-end gap-2 pr-2">
-                {/* <SaveDropdown onExportPdf={handleExportPdf} onDownloadZip={handleDownloadZip} /> */}
-
-                <DropdownMenu placement="bottom-end" gutter={8}>
-                    <DropdownMenu.Trigger class="proeminent-button text-primary flex h-8.5 items-center gap-1 rounded-full pr-2 pl-3.5">
-                        Save <FiChevronDown class="text-label-tertiary size-5.5 translate-y-px" />
+            <div class="">
+                <DropdownMenu placement="bottom" gutter={8}>
+                    <DropdownMenu.Trigger class="flex items-center gap-1 text-sm">
+                        {props.currentDocumentTitle}
+                        <FiChevronDown class="text-label-tertiary size-5" />
                     </DropdownMenu.Trigger>
                     <DropdownMenu.Portal>
-                        <DropdownMenu.Content class="proeminent-button flex flex-col gap-[4px] rounded-[22px] p-[6px]">
+                        <DropdownMenu.Content class="proeminent-button flex min-w-48 flex-col rounded-[21px] p-[5px]">
+                            <For each={props.documents}>
+                                {(document) => (
+                                    <DropdownMenu.Item
+                                        class="text-label-primary hover:bg-fill-secondary flex h-8.5 w-full cursor-pointer items-center justify-between gap-3 rounded-full pr-3 pl-4"
+                                        onSelect={() => props.onSelectDocument(document.id)}
+                                    >
+                                        <span class="truncate">{document.name}</span>
+                                        <Show when={document.id === props.activeDocumentId}>
+                                            <span class="text-label-secondary text-xs">Current</span>
+                                        </Show>
+                                    </DropdownMenu.Item>
+                                )}
+                            </For>
+                        </DropdownMenu.Content>
+                    </DropdownMenu.Portal>
+                </DropdownMenu>
+            </div>
+
+            <div class="flex flex-[1_1_0%] justify-end gap-2 pr-2">
+                <DropdownMenu placement="bottom-end" gutter={8}>
+                    <DropdownMenu.Trigger class="proeminent-button text-primary flex h-8.5 items-center gap-1 rounded-full pr-2 pl-3.5">
+                        Save <FiChevronDown class="text-label-tertiary size-5 translate-y-px" />
+                    </DropdownMenu.Trigger>
+                    <DropdownMenu.Portal>
+                        <DropdownMenu.Content class="proeminent-button flex flex-col rounded-[21px] p-[5px]">
                             <DropdownMenu.Item
                                 disabled
-                                class="text-label-primary hover:bg-fill-tertiary flex h-8.5 w-full cursor-pointer items-center gap-1 rounded-full pr-4 pl-2 text-sm data-disabled:cursor-not-allowed data-disabled:opacity-50"
+                                class="text-label-primary hover:bg-fill-secondary flex h-8.5 w-full cursor-pointer items-center gap-1 rounded-full pr-4 pl-2 data-disabled:cursor-not-allowed"
                                 title="GitHub integration coming soon."
                             >
-                                <IoLogoGithub size={18} class="text-label-secondary mr-0.5 w-6" />
-                                <span>Push to GitHub</span>
+                                <IoLogoGithub size={18} class="mr-0.5 w-6" />
+                                <span class="mt-px">Push to GitHub</span>
                             </DropdownMenu.Item>
                             <DropdownMenu.Item
-                                class="text-label-primary hover:bg-fill-tertiary flex h-8.5 w-full cursor-pointer items-center gap-1 rounded-full pr-4 pl-2 text-sm"
+                                class="text-label-primary hover:bg-fill-secondary flex h-8.5 w-full cursor-pointer items-center gap-1 rounded-full pr-4 pl-2"
                                 onSelect={props.onDownloadZip}
                             >
-                                <IoFolderOpen size={16} class="text-label-secondary mr-0.5 w-6" />
-                                <span>Download sources as .zip</span>
+                                <IoFolderOpen size={16} class="mr-0.5 w-6" />
+                                <span class="mt-px">Download sources as .zip</span>
                             </DropdownMenu.Item>
                         </DropdownMenu.Content>
                     </DropdownMenu.Portal>
