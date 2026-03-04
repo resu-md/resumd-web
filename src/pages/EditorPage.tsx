@@ -1,5 +1,5 @@
 import { createSignal } from "solid-js";
-import { makePersisted } from "@solid-primitives/storage";
+import { makePersisted, storageSync } from "@solid-primitives/storage";
 // Constants
 import markdownTemplate from "@/templates/refer.me/resume.md?raw";
 import cssTemplate from "@/templates/refer.me/theme.css?raw";
@@ -12,8 +12,16 @@ import Tabs from "@/components/editor/Tabs";
 
 export default function EditorPage() {
     const [activeTab, setActiveTab] = createSignal<"resume.md" | "theme.css">("resume.md");
-    const [markdown, setMarkdown] = makePersisted(createSignal(markdownTemplate), { name: "resumd.markdown" });
-    const [css, setCss] = makePersisted(createSignal(cssTemplate), { name: "resumd.css" });
+    const [markdown, setMarkdown] = makePersisted(createSignal(markdownTemplate), {
+        name: "resumd.markdown",
+        storage: localStorage,
+        sync: storageSync,
+    });
+    const [css, setCss] = makePersisted(createSignal(cssTemplate), {
+        name: "resumd.css",
+        storage: localStorage,
+        sync: storageSync,
+    });
 
     return (
         <main class="bg-system-secondary padding-r flex h-dvh w-dvw">
