@@ -1,5 +1,5 @@
 import { createSignal, Show } from "solid-js";
-import { IoEyeOffOutline, IoEyeOutline } from "solid-icons/io";
+import { IoArrowUndo, IoEyeOffOutline, IoEyeOutline } from "solid-icons/io";
 
 export default function GithubDiff() {
     const [isDiffMode, setIsDiffMode] = createSignal(false);
@@ -17,6 +17,13 @@ export default function GithubDiff() {
                 <Show when={isDiffMode()} fallback={<IoEyeOutline size={15} class="text-label-secondary" />}>
                     <IoEyeOffOutline size={15} class="text-label-secondary" />
                 </Show>
+            </button>
+
+            <button
+                title="Revert changes"
+                class="text-label-secondary hover:bg-fill-secondary ml-2 flex size-6 items-center justify-center rounded-lg opacity-0 group-hover/diff:opacity-100"
+            >
+                <IoArrowUndo size={15} class="text-label-secondary" />
             </button>
         </div>
     );

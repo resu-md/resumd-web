@@ -149,6 +149,7 @@ export default function GithubDropdown() {
                                             onSelect={() => setSelectedBranch(branch.name)}
                                         >
                                             <span>{branch.name}</span>
+                                            {/* TODO: Placeholder for the actuall diff values: */}
                                             <div
                                                 class={clsx(
                                                     "flex items-center gap-1",
