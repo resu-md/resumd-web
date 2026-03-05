@@ -50,7 +50,7 @@ export function GithubRepositoryProvider(props: { children?: JSXElement }) {
     const urlRepo = () => params.repo ?? null;
     const urlBranch = () => searchParams.branch ?? null;
 
-    const [repositoriesResource] = createResource(
+    const [repositoriesResource, { refetch: refetchRepositories }] = createResource(
         () => (status() === "authenticated" ? "authenticated" : null),
         async () => {
             const result = await api<{ repos: GithubRepository[] }>("/api/github/installations/branches");
@@ -132,8 +132,23 @@ export function GithubRepositoryProvider(props: { children?: JSXElement }) {
         window.location.href = "/api/github/installations/manage";
     };
 
-    const createBranchFromSelected = async (name: string) => {
-        //
+    const createBranchFromSelected = async (newBranchName: string) => {
+        const repo = selectedRepository();
+        if (!repo) throw new Error("No repository selected");
+
+        const branch = selectedBranch();
+        const fromBranch = branch?.name ?? repo.defaultBranch;
+
+        await api<{ ok: boolean; branch: GithubBranch }>(
+            `/api/github/repo/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.repo)}/branches`,
+            {
+                method: "POST",
+                body: JSON.stringify({ name: newBranchName, from: fromBranch }),
+            },
+        );
+        await refetchRepositories();
+
+        setSearchParams({ branch: newBranchName });
     };
 
     return (

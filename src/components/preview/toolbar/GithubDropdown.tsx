@@ -24,6 +24,7 @@ export default function GithubDropdown() {
     const selectedRepositoryBranches = () => selectedRepository()?.branches ?? [];
     const selectedBranchLabel = () => selectedBranch()?.name ?? null;
 
+    // TODO: Loading state while creating branches
     const handleCreateBranch = async () => {
         const newBranchName = window.prompt("Enter a name for the new branch:");
         if (!newBranchName) return;
