@@ -6,6 +6,7 @@ import { FiChevronDown, FiGitBranch } from "solid-icons/fi";
 import { IoLogOutOutline } from "solid-icons/io";
 import { RiLogosGithubFill } from "solid-icons/ri";
 import { For, Show } from "solid-js";
+import GithubDiff from "./GithubDiff";
 
 export default function GithubDropdown() {
     const { user, status, logout } = useGithubAuth();
@@ -124,6 +125,11 @@ export default function GithubDropdown() {
                                     "flex flex-col gap-0.5 rounded-xl py-1.5 text-sm outline-none",
                                 )}
                             >
+                                <Show when={selectedRepositoryBranches().length > 0}>
+                                    <span class="text-label-tertiary mx-1.5 px-3 pt-1 pb-1 text-xs font-semibold">
+                                        Branches
+                                    </span>
+                                </Show>
                                 <For
                                     each={selectedRepositoryBranches()}
                                     fallback={
@@ -135,7 +141,7 @@ export default function GithubDropdown() {
                                     {(branch) => (
                                         <DropdownMenu.Item
                                             class={clsx(
-                                                "group mx-1.5 cursor-pointer rounded-lg px-3 py-0.75 pr-6 outline-none",
+                                                "group mx-1.5 flex cursor-pointer items-center justify-between rounded-lg px-3 py-0.75 outline-none",
                                                 selectedBranch()?.name === branch.name
                                                     ? "bg-blue/95 text-white"
                                                     : "data-highlighted:bg-fill-secondary",
@@ -143,6 +149,17 @@ export default function GithubDropdown() {
                                             onSelect={() => setSelectedBranch(branch.name)}
                                         >
                                             <span>{branch.name}</span>
+                                            <div
+                                                class={clsx(
+                                                    "flex items-center gap-1",
+                                                    selectedBranch()?.name === branch.name
+                                                        ? "text-white"
+                                                        : "text-label-tertiary",
+                                                )}
+                                            >
+                                                <span>+20</span>
+                                                <span>-5</span>
+                                            </div>
                                         </DropdownMenu.Item>
                                     )}
                                 </For>
@@ -159,6 +176,8 @@ export default function GithubDropdown() {
                         </DropdownMenu.Portal>
                     </DropdownMenu>
                 </Show>
+
+                <GithubDiff />
             </div>
         </Show>
     );
