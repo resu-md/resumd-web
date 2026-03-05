@@ -3,12 +3,14 @@ import { DropdownMenu } from "@kobalte/core/dropdown-menu";
 import { FiChevronDown } from "solid-icons/fi";
 import { IoFolderOpen, IoLogoGithub } from "solid-icons/io";
 import GithubDropdown from "./GithubDropdown";
+import GithubDiff from "./GithubDiff";
 
 export default function PreviewToolbar(props: { onExportPdf: () => void; onDownloadZip: () => void }) {
     return (
         <div class="absolute top-3.5 right-0 left-0 flex items-center justify-between gap-3 px-3.5 pr-5">
             <div class="flex flex-[1_1_0%] items-center gap-2">
                 <GithubDropdown />
+                <GithubDiff />
             </div>
 
             <div class="flex flex-[1_1_0%] justify-end gap-2 pr-2">

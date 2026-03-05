@@ -1,13 +1,16 @@
 import { createSignal } from "solid-js";
 import Editor from "@/components/editor/Editor";
+import DiffEditor from "@/components/editor/DiffEditor";
 import Tabs from "@/components/editor/Tabs";
 import Previewer from "@/components/preview/Previewer";
 import { ZoomProvider } from "@/components/preview/ZoomContext";
 import ResizablePane from "@/components/ResizablePane";
 import { useResume } from "@/contexts/ResumeContext";
+import { useGithubResume } from "@/contexts/github/GithubResumeContext";
 
 export default function EditorPage() {
     const { css, setCss, markdown, setMarkdown } = useResume();
+    const { referenceResume, isDiffMode } = useGithubResume();
     const [activeTab, setActiveTab] = createSignal<"resume.md" | "theme.css">("resume.md");
 
     return (
@@ -21,24 +24,47 @@ export default function EditorPage() {
             >
                 <div class="border-gray-5 dark:border-gray-4 bg-system-primary mt-4.5 flex h-[calc(100%-1.125rem)] flex-col overflow-hidden rounded-2xl border">
                     <Tabs values={["resume.md", "theme.css"]} active={activeTab()} onChange={setActiveTab} />
-                    <Editor
-                        class="flex-1"
-                        activeTabId={activeTab()}
-                        tabs={[
-                            {
-                                id: "resume.md",
-                                language: "markdown",
-                                value: markdown(),
-                                onChange: setMarkdown,
-                            },
-                            {
-                                id: "theme.css",
-                                language: "css",
-                                value: css(),
-                                onChange: setCss,
-                            },
-                        ]}
-                    />
+                    {isDiffMode() && referenceResume()
+                        ? (
+                            <DiffEditor
+                                class="flex-1"
+                                activeTabId={activeTab()}
+                                tabs={[
+                                    {
+                                        id: "resume.md",
+                                        language: "markdown",
+                                        originalValue: referenceResume()?.markdown?.content ?? "",
+                                        modifiedValue: markdown(),
+                                    },
+                                    {
+                                        id: "theme.css",
+                                        language: "css",
+                                        originalValue: referenceResume()?.stylesheet?.content ?? "",
+                                        modifiedValue: css(),
+                                    },
+                                ]}
+                            />
+                        )
+                        : (
+                            <Editor
+                                class="flex-1"
+                                activeTabId={activeTab()}
+                                tabs={[
+                                    {
+                                        id: "resume.md",
+                                        language: "markdown",
+                                        value: markdown(),
+                                        onChange: setMarkdown,
+                                    },
+                                    {
+                                        id: "theme.css",
+                                        language: "css",
+                                        value: css(),
+                                        onChange: setCss,
+                                    },
+                                ]}
+                            />
+                        )}
                     {/* <div class="flex flex-1 items-center justify-center text-sm text-gray-500">Editor coming soon!</div> */}
                 </div>
             </ResizablePane>

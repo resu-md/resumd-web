@@ -3,6 +3,7 @@ import {
     createEffect,
     createMemo,
     createResource,
+    untrack,
     useContext,
     type Accessor,
     type JSXElement,
@@ -10,6 +11,7 @@ import {
 import { useLocation, useNavigate, useParams, useSearchParams } from "@solidjs/router";
 import { useGithubAuth } from "./GithubAuthContext";
 import { api } from "@/lib/api";
+import { useBrowserTabs } from "../BrowserTabsContext";
 
 export type GithubBranch = {
     name: string;
@@ -38,8 +40,15 @@ const GithubRepositoryContext = createContext<{
     createBranchFromSelected: (branchName: string) => Promise<void>;
 }>();
 
+const TAB_REPO_JOIN_PROMPT_PREFIX = "resumd.tabs.joinPrompt";
+
+function joinPromptSessionKey(owner: string, repo: string) {
+    return `${TAB_REPO_JOIN_PROMPT_PREFIX}.${owner}/${repo}`;
+}
+
 export function GithubRepositoryProvider(props: { children?: JSXElement }) {
     const { status } = useGithubAuth();
+    const { tabId, isNewTab, setWorkspace, listOtherTabsForRepo } = useBrowserTabs();
 
     const location = useLocation();
     const params = useParams<{ owner?: string; repo?: string }>();
@@ -150,6 +159,59 @@ export function GithubRepositoryProvider(props: { children?: JSXElement }) {
 
         setSearchParams({ branch: newBranchName });
     };
+
+    createEffect(() => {
+        if (status() !== "authenticated") {
+            setWorkspace({ kind: "anonymous" });
+            return;
+        }
+
+        const owner = urlOwner();
+        const repo = urlRepo();
+        const branch = selectedBranch()?.name ?? null;
+        if (!owner || !repo || !branch) {
+            setWorkspace({ kind: "anonymous" });
+            return;
+        }
+
+        setWorkspace({ kind: "github", owner, repo, branch });
+    });
+
+    createEffect(() => {
+        if (status() !== "authenticated") return;
+        if (!isNewTab()) return;
+        if (isLoadingRepositories()) return;
+
+        const owner = urlOwner();
+        const repo = urlRepo();
+        const branch = selectedBranch();
+        if (!owner || !repo || !branch) return;
+
+        const promptKey = joinPromptSessionKey(owner, repo);
+        if (sessionStorage.getItem(promptKey) === "1") return;
+        sessionStorage.setItem(promptKey, "1");
+
+        const otherTabs = listOtherTabsForRepo(owner, repo);
+        if (otherTabs.length === 0) return;
+
+        const shouldContinueSynced = window.confirm(
+            `This repository is already open in another tab.\n\n` +
+                `Press OK to continue editing in sync.\n` +
+                `Press Cancel to create a new branch and edit separately in this tab.`,
+        );
+        if (shouldContinueSynced) return;
+
+        const suffix = untrack(tabId).slice(-4) || "copy";
+        const suggestedBranchName = `${branch.name}-tab-${suffix}`;
+        const rawBranchName = window.prompt("Enter a name for the new branch:", suggestedBranchName);
+        const newBranchName = rawBranchName?.trim();
+        if (!newBranchName) return;
+
+        createBranchFromSelected(newBranchName).catch((error) => {
+            const message = error instanceof Error ? error.message : "Failed to create branch";
+            window.alert(message);
+        });
+    });
 
     return (
         <GithubRepositoryContext.Provider

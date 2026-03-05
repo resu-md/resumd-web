@@ -3,8 +3,10 @@ import { Route, Router } from "@solidjs/router";
 // Context
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ResumeProvider } from "./contexts/ResumeContext";
+import { BrowserTabsProvider } from "./contexts/BrowserTabsContext";
 import { GithubAuthProvider } from "./contexts/github/GithubAuthContext";
 import { GithubRepositoryProvider } from "./contexts/github/GithubRepositoryContext";
+import { GithubResumeProvider } from "./contexts/github/GithubResumeContext";
 // Pages
 import EditorPage from "@/pages/EditorPage";
 import AuthenticatedEditorPage from "./pages/AuthenticatedEditorPage";
@@ -14,11 +16,15 @@ export default function App() {
 
     return (
         <Router base={routerBase} root={ContextProviders}>
-            <Route component={GithubAuthProvider}>
-                <Route component={GithubRepositoryProvider}>
-                    <Route component={ResumeProvider}>
-                        <Route path="/" component={EditorPage} />
-                        <Route path="/:owner/:repo" component={AuthenticatedEditorPage} />
+            <Route component={BrowserTabsProvider}>
+                <Route component={GithubAuthProvider}>
+                    <Route component={GithubRepositoryProvider}>
+                        <Route component={ResumeProvider}>
+                            <Route component={GithubResumeProvider}>
+                                <Route path="/" component={EditorPage} />
+                                <Route path="/:owner/:repo" component={AuthenticatedEditorPage} />
+                            </Route>
+                        </Route>
                     </Route>
                 </Route>
             </Route>
