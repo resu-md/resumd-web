@@ -14,6 +14,9 @@ body {
 
     --color-scheme: light dark;
 
+    /* Animations */
+    --animate-fade-in: fade-in 200ms ease-out both;
+
     /* System Colors */
     --color-red: var(--ios-red);
     --color-orange: var(--ios-orange);
@@ -68,6 +71,7 @@ body {
     --shadow-primary: var(--shadow-primary);
     --shadow-secondary: var(--shadow-secondary);
     --shadow-tertiary: var(--shadow-tertiary);
+    --shadow-proeminent: var(--shadow-proeminent);
 }
 
 :root {
@@ -125,6 +129,7 @@ body {
     --shadow-primary: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 0 20px -1px rgba(0, 0, 0, 0.08);
     --shadow-secondary: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 0 20px -1px rgba(0, 0, 0, 0.08);
     --shadow-tertiary: 0 0 0.5px 0.5px rgba(0, 0, 0, 0.1), 0 1px 15px -2px rgba(0, 0, 0, 0.12);
+    --shadow-proeminent: inset 1px 1px 0 0 #fff, 0 0 0 1px rgba(0, 0, 0, 0.12);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -189,6 +194,7 @@ body {
         --shadow-primary: 0 0 0 1px rgba(255, 255, 255, 0.17);
         --shadow-secondary: 0 0 0 1px rgba(255, 255, 255, 0.08);
         --shadow-tertiary: 0 0 0 1px rgba(255, 255, 255, 0.08);
+        --shadow-proeminent: inset 0 1px 1px 0 rgba(255, 255, 255, 0.26), inset 0 0 0 1px rgba(255, 255, 255, 0.07);
     }
 }
 
@@ -203,25 +209,23 @@ button {
 
 .proeminent-button {
     background: linear-gradient(175deg, #eeeeee 0%, #ffffff 100%);
-    box-shadow:
-        inset 1px 1px 0 0 #fff,
-        0 0 0 1px rgba(0, 0, 0, 0.12);
-    /* 0 0 20px -1px rgba(0, 0, 0, 0.08); */
-    transition: box-shadow 50ms ease;
+    box-shadow: var(--shadow-proeminent);
     outline-offset: 2px;
 }
 @media (prefers-color-scheme: dark) {
     .proeminent-button {
-        /* background: linear-gradient(
-            180deg,
-            rgba(40, 40, 40, 0.75) 0%,
-            rgba(20, 20, 20, 0.75) 50%,
-            rgba(30, 30, 30, 0.75) 100%
-        ); */
+        /* background: linear-gradient(180deg, rgba(40, 40, 40, 0.75) 0%, rgba(20, 20, 20, 0.75) 50%, rgba(30, 30, 30, 0.75) 100%); */
         background: rgba(35, 35, 35, 0.85) 0%;
         backdrop-filter: blur(20px);
-        box-shadow:
-            inset 0 1px 1px 0 rgba(255, 255, 255, 0.26),
-            inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+        box-shadow: var(--shadow-proeminent);
+    }
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
     }
 }

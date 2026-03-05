@@ -2,15 +2,25 @@ import { type JSXElement } from "solid-js";
 import { Route, Router } from "@solidjs/router";
 // Context
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { ResumeProvider } from "./contexts/ResumeContext";
+import { GithubAuthProvider } from "./contexts/github/GithubAuthContext";
+import { GithubRepositoryProvider } from "./contexts/github/GithubRepositoryContext";
 // Pages
 import EditorPage from "@/pages/EditorPage";
-import { DocumentProvider } from "./contexts/DocumentContext";
+import AuthenticatedEditorPage from "./pages/AuthenticatedEditorPage";
 
 export default function App() {
+    const routerBase = import.meta.env.BASE_URL === "/" ? "/" : import.meta.env.BASE_URL.replace(/\/+$/, ""); // TODO: Check if needed
+
     return (
-        <Router base={import.meta.env.BASE_URL} root={ContextProviders}>
-            <Route component={DocumentProvider}>
-                <Route path="/" component={EditorPage} />
+        <Router base={routerBase} root={ContextProviders}>
+            <Route component={GithubAuthProvider}>
+                <Route component={GithubRepositoryProvider}>
+                    <Route component={ResumeProvider}>
+                        <Route path="/" component={EditorPage} />
+                        <Route path="/:owner/:repo" component={AuthenticatedEditorPage} />
+                    </Route>
+                </Route>
             </Route>
         </Router>
     );

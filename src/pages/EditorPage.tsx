@@ -1,27 +1,14 @@
 import { createSignal } from "solid-js";
-import { makePersisted, storageSync } from "@solid-primitives/storage";
-// Constants
-import markdownTemplate from "@/templates/refer.me/resume.md?raw";
-import cssTemplate from "@/templates/refer.me/theme.css?raw";
-// Components
-import { ZoomProvider } from "@/components/preview/ZoomContext";
-import Previewer from "@/components/preview/Previewer";
 import Editor from "@/components/editor/Editor";
-import ResizablePane from "@/components/ResizablePane";
 import Tabs from "@/components/editor/Tabs";
+import Previewer from "@/components/preview/Previewer";
+import { ZoomProvider } from "@/components/preview/ZoomContext";
+import ResizablePane from "@/components/ResizablePane";
+import { useResume } from "@/contexts/ResumeContext";
 
 export default function EditorPage() {
+    const { css, setCss, markdown, setMarkdown } = useResume();
     const [activeTab, setActiveTab] = createSignal<"resume.md" | "theme.css">("resume.md");
-    const [markdown, setMarkdown] = makePersisted(createSignal(markdownTemplate), {
-        name: "resumd.markdown",
-        storage: localStorage,
-        sync: storageSync,
-    });
-    const [css, setCss] = makePersisted(createSignal(cssTemplate), {
-        name: "resumd.css",
-        storage: localStorage,
-        sync: storageSync,
-    });
 
     return (
         <main class="bg-system-secondary padding-r flex h-dvh w-dvw">
