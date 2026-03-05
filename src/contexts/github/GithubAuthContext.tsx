@@ -1,4 +1,5 @@
 import { api } from "@/lib/api";
+import { useNavigate } from "@solidjs/router";
 import {
     createContext,
     createMemo,
@@ -40,6 +41,8 @@ const redirectToGithubAuthorize = (owner: string, repo: string, returnTo?: strin
 };
 
 export function GithubAuthProvider(props: { children?: JSXElement }) {
+    const navigate = useNavigate();
+
     const [status, setStatus] = createSignal<GithubAuthStatus>("loading");
     const [user, setUser] = createSignal<GithubUser | null>(null);
 
@@ -49,6 +52,7 @@ export function GithubAuthProvider(props: { children?: JSXElement }) {
         } finally {
             setStatus("unauthenticated");
             setUser(null);
+            navigate("/", { replace: true });
         }
     };
 
