@@ -9,7 +9,6 @@ import {
 } from "solid-js";
 import { useLocation, useNavigate, useParams, useSearchParams } from "@solidjs/router";
 import { useGithubAuth } from "./GithubAuthContext";
-import { api } from "@/lib/api";
 
 export type GithubBranch = {
     name: string;
@@ -39,7 +38,7 @@ const GithubRepositoryContext = createContext<{
 }>();
 
 export function GithubRepositoryProvider(props: { children?: JSXElement }) {
-    const { status } = useGithubAuth();
+    const { status, api } = useGithubAuth();
 
     const location = useLocation();
     const params = useParams<{ owner?: string; repo?: string }>();
