@@ -2,11 +2,10 @@ import { type JSXElement } from "solid-js";
 import { Route, Router } from "@solidjs/router";
 // Context
 import { ThemeProvider } from "@/contexts/ThemeContext";
-import { ResumeProvider } from "./contexts/ResumeContext";
 import { GithubAuthProvider } from "./contexts/github/GithubAuthContext";
 import { GithubRepositoryProvider } from "./contexts/github/GithubRepositoryContext";
 // Pages
-import EditorPage from "@/pages/EditorPage";
+import RootPage from "@/pages/RootPage";
 import AuthenticatedEditorPage from "./pages/AuthenticatedEditorPage";
 
 export default function App() {
@@ -16,10 +15,8 @@ export default function App() {
         <Router base={routerBase} root={ContextProviders}>
             <Route component={GithubAuthProvider}>
                 <Route component={GithubRepositoryProvider}>
-                    <Route component={ResumeProvider}>
-                        <Route path="/" component={EditorPage} />
-                        <Route path="/:owner/:repo" component={AuthenticatedEditorPage} />
-                    </Route>
+                    <Route path="/" component={RootPage} />
+                    <Route path="/:owner/:repo" component={AuthenticatedEditorPage} />
                 </Route>
             </Route>
         </Router>

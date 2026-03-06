@@ -1,14 +1,17 @@
 import { useGithubAuth } from "@/contexts/github/GithubAuthContext";
-import { useGithubRepository } from "@/contexts/github/GithubRepositoryContext";
+import { useGithubRepository, type GithubRepository } from "@/contexts/github/GithubRepositoryContext";
 import { DropdownMenu } from "@kobalte/core/dropdown-menu";
 import clsx from "clsx";
 import { FiChevronDown, FiGitBranch } from "solid-icons/fi";
 import { IoLogOutOutline } from "solid-icons/io";
 import { RiLogosGithubFill } from "solid-icons/ri";
 import { For, Show } from "solid-js";
-import GithubDiff from "./GithubDiff";
 
-export default function GithubDropdown() {
+export default function GithubDropdown(props: {
+    onSelectRepository?: (repo: GithubRepository) => Promise<boolean> | boolean;
+    onSelectBranch?: (branchName: string) => Promise<boolean> | boolean;
+    isSwitching?: boolean;
+}) {
     const { user, status, logout } = useGithubAuth();
     const {
         repositories,
@@ -24,8 +27,42 @@ export default function GithubDropdown() {
     const selectedRepositoryBranches = () => selectedRepository()?.branches ?? [];
     const selectedBranchLabel = () => selectedBranch()?.name ?? null;
 
+    const handleRepositorySelect = async (repo: GithubRepository) => {
+        if (props.isSwitching) return;
+
+        try {
+            if (props.onSelectRepository) {
+                await props.onSelectRepository(repo);
+                return;
+            }
+
+            setSelectedRepository(repo);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Failed to switch repository";
+            window.alert(message);
+        }
+    };
+
+    const handleBranchSelect = async (branchName: string) => {
+        if (props.isSwitching) return;
+
+        try {
+            if (props.onSelectBranch) {
+                await props.onSelectBranch(branchName);
+                return;
+            }
+
+            setSelectedBranch(branchName);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Failed to switch branch";
+            window.alert(message);
+        }
+    };
+
     // TODO: Loading state while creating branches
     const handleCreateBranch = async () => {
+        if (props.isSwitching) return;
+
         const newBranchName = window.prompt("Enter a name for the new branch:");
         if (!newBranchName) return;
         try {
@@ -44,7 +81,7 @@ export default function GithubDropdown() {
                         <RiLogosGithubFill class="size-5" />
                         <span class="text-label-tertiary px-0.75">/</span>
                         <span>{selectedRepository()?.owner ?? user()?.username}</span>
-                        <Show when={repositories()!.length > 0}>
+                        <Show when={repositories()!.length > 0 && selectedRepository()}>
                             <span class="text-label-tertiary px-0.75">/</span>
                             <span>{selectedRepository()?.repo}</span>
                         </Show>
@@ -76,8 +113,9 @@ export default function GithubDropdown() {
                                             selectedRepository()?.fullName === repo.fullName
                                                 ? "bg-blue/95 text-white"
                                                 : "data-highlighted:bg-fill-secondary",
+                                            props.isSwitching && "pointer-events-none opacity-50",
                                         )}
-                                        onSelect={() => setSelectedRepository(repo)}
+                                        onSelect={() => void handleRepositorySelect(repo)}
                                     >
                                         <span>{repo.owner}</span>
                                         <span>/</span>
@@ -144,29 +182,18 @@ export default function GithubDropdown() {
                                                 selectedBranch()?.name === branch.name
                                                     ? "bg-blue/95 text-white"
                                                     : "data-highlighted:bg-fill-secondary",
+                                                props.isSwitching && "pointer-events-none opacity-50",
                                             )}
-                                            onSelect={() => setSelectedBranch(branch.name)}
+                                            onSelect={() => void handleBranchSelect(branch.name)}
                                         >
                                             <span>{branch.name}</span>
-                                            {/* TODO: Placeholder for the actuall diff values: */}
-                                            <div
-                                                class={clsx(
-                                                    "flex items-center gap-1 font-mono text-xs",
-                                                    selectedBranch()?.name === branch.name
-                                                        ? "text-white"
-                                                        : "text-label-secondary",
-                                                )}
-                                            >
-                                                <span>+20</span>
-                                                <span>-5</span>
-                                            </div>
                                         </DropdownMenu.Item>
                                     )}
                                 </For>
                                 <DropdownMenu.Separator class="border-fill-tertiary mx-4 my-1" />
                                 <DropdownMenu.Item
                                     class="data-highlighted:bg-fill-secondary mx-1.5 flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-0.75 outline-none"
-                                    onSelect={handleCreateBranch}
+                                    onSelect={() => void handleCreateBranch()}
                                 >
                                     <Show when={selectedRepositoryBranches().length > 0} fallback="Create branch">
                                         Create branch from "{selectedBranchLabel()}"
@@ -176,8 +203,6 @@ export default function GithubDropdown() {
                         </DropdownMenu.Portal>
                     </DropdownMenu>
                 </Show>
-
-                <GithubDiff />
             </div>
         </Show>
     );

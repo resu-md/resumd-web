@@ -1,7 +1,8 @@
 import { useGithubAuth } from "@/contexts/github/GithubAuthContext";
 import { useParams } from "@solidjs/router";
 import { Show, createEffect, on } from "solid-js";
-import EditorPage from "./EditorPage";
+import GithubEditorPage from "../components/editor/GithubEditorPage";
+import { GithubResumeProvider } from "@/contexts/github/GithubResumeContext";
 
 export default function AuthenticatedEditorPage() {
     const params = useParams<{ owner: string; repo: string }>();
@@ -26,7 +27,9 @@ export default function AuthenticatedEditorPage() {
                 </main>
             }
         >
-            <EditorPage />
+            <GithubResumeProvider>
+                <GithubEditorPage />
+            </GithubResumeProvider>
         </Show>
     );
 }

@@ -1,10 +1,8 @@
-import { RESUME_STORAGE_KEYS } from "@/lib/storage-keys";
 import { makePersisted, storageSync } from "@solid-primitives/storage";
-import { createContext, createSignal, Show, useContext, type Accessor, type JSXElement, type Setter } from "solid-js";
+import { createContext, createSignal, useContext, type Accessor, type JSXElement, type Setter } from "solid-js";
+import { RESUME_STORAGE_KEYS } from "@/lib/storage-keys";
 
 type ResumeContextValue = {
-    resumeId: Accessor<string>;
-    switchResume: (resumeId: string) => void;
     css: Accessor<string>;
     setCss: Setter<string>;
     markdown: Accessor<string>;
@@ -13,18 +11,14 @@ type ResumeContextValue = {
 
 const ResumeContext = createContext<ResumeContextValue>();
 
-function newResumeId() {
-    return `resume_${crypto.randomUUID()}`;
-}
-
-function ResumeSession(props: { resumeId: string; switchResume: (resumeId: string) => void; children?: JSXElement }) {
+export function ResumeProvider(props: { children?: JSXElement }) {
     const [css, setCss] = makePersisted(createSignal(""), {
-        name: `resumd.resume.${props.resumeId}.css`,
+        name: RESUME_STORAGE_KEYS.LOCAL_CSS,
         storage: localStorage,
         sync: storageSync,
     });
     const [markdown, setMarkdown] = makePersisted(createSignal(""), {
-        name: `resumd.resume.${props.resumeId}.md`,
+        name: RESUME_STORAGE_KEYS.LOCAL_MARKDOWN,
         storage: localStorage,
         sync: storageSync,
     });
@@ -32,8 +26,6 @@ function ResumeSession(props: { resumeId: string; switchResume: (resumeId: strin
     return (
         <ResumeContext.Provider
             value={{
-                resumeId: () => props.resumeId,
-                switchResume: props.switchResume,
                 css,
                 setCss,
                 markdown,
@@ -42,28 +34,6 @@ function ResumeSession(props: { resumeId: string; switchResume: (resumeId: strin
         >
             {props.children}
         </ResumeContext.Provider>
-    );
-}
-
-export function ResumeProvider(props: { children?: JSXElement }) {
-    const [currentResumeId, setCurrentResumeId] = makePersisted(createSignal<string | null>(null), {
-        name: RESUME_STORAGE_KEYS.CURRENT_RESUME_ID,
-        storage: localStorage,
-    });
-
-    const firstResumeId = currentResumeId() ?? newResumeId();
-    if (currentResumeId() == null) setCurrentResumeId(firstResumeId);
-
-    console.log("Current Resume ID:", currentResumeId());
-
-    return (
-        <Show when={currentResumeId()} keyed>
-            {(resumeId) => (
-                <ResumeSession resumeId={resumeId} switchResume={(value) => setCurrentResumeId(value)}>
-                    {props.children}
-                </ResumeSession>
-            )}
-        </Show>
     );
 }
 

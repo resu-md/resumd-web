@@ -29,10 +29,16 @@ export type GithubRepository = {
     branches: GithubBranch[];
 };
 
+type GithubLastSelection = {
+    owner: string;
+    repo: string;
+    branch: string;
+};
+
 const GithubRepositoryContext = createContext<{
     repositories: Resource<GithubRepository[] | undefined>;
     selectedRepository: Accessor<GithubRepository | null>;
-    setSelectedRepository: (repo: GithubRepository) => void;
+    setSelectedRepository: (repo: GithubRepository, branchName?: string) => void;
     selectedBranch: Accessor<GithubBranch | null>;
     setSelectedBranch: (branchName: string) => void;
     // Remote calls
@@ -51,6 +57,12 @@ export function GithubRepositoryProvider(props: { children?: JSXElement }) {
     const urlOwner = () => params.owner ?? null;
     const urlRepo = () => params.repo ?? null;
     const urlBranch = () => searchParams.branch ?? null;
+    const isRepositoryRoute = () => urlOwner() !== null && urlRepo() !== null;
+
+    const [lastSelection, setLastSelection] = makePersisted(createSignal<GithubLastSelection | null>(null), {
+        name: GITHUB_STORAGE_KEYS.LAST_SELECTION,
+        storage: localStorage,
+    });
 
     const [repositoriesResource, { refetch: refetchRepositories }] = createResource(
         () => (status() === "authenticated" ? "authenticated" : null),
@@ -74,67 +86,114 @@ export function GithubRepositoryProvider(props: { children?: JSXElement }) {
 
     const selectedRepository = createMemo(() => {
         const repos = repositoriesResource();
-        if (!repos) return null;
+        if (!repos || repos.length === 0) return null;
 
         const owner = urlOwner();
         const repo = urlRepo();
 
-        // Search for exact owner/repo match, else search for owner match, else default to first repo
-        return (
-            repos.find((r) => r.owner === owner && r.repo === repo) ||
-            (owner ? repos.find((r) => r.owner === owner) : null) ||
-            repos[0] ||
-            null
-        );
+        if (owner && repo) {
+            return repos.find((item) => item.owner === owner && item.repo === repo) ?? null;
+        }
+
+        const remembered = lastSelection();
+        if (remembered) {
+            const rememberedRepo = repos.find(
+                (item) => item.owner === remembered.owner && item.repo === remembered.repo,
+            );
+            if (rememberedRepo) return rememberedRepo;
+        }
+
+        return repos[0] ?? null;
     });
 
     const selectedBranch = createMemo(() => {
         const repo = selectedRepository();
         if (!repo) return null;
 
-        const branchName = urlBranch();
+        const branchNameFromUrl = urlBranch();
 
-        // Search for exact branch match, else default to default branch
-        return repo.branches.find((b) => b.name === branchName) || repo.branches.find((b) => b.isDefault) || null;
+        if (isRepositoryRoute()) {
+            return (
+                (branchNameFromUrl ? repo.branches.find((branch) => branch.name === branchNameFromUrl) : null) ||
+                repo.branches.find((branch) => branch.isDefault) ||
+                null
+            );
+        }
+
+        const remembered = lastSelection();
+        if (remembered && remembered.owner === repo.owner && remembered.repo === repo.repo) {
+            const rememberedBranch = repo.branches.find((branch) => branch.name === remembered.branch);
+            if (rememberedBranch) return rememberedBranch;
+        }
+
+        return repo.branches.find((branch) => branch.isDefault) || null;
     });
 
-    const setSelectedRepository = (repo: GithubRepository) => {
-        navigate(`/${repo.owner}/${repo.repo}`);
+    const resolveBranchNameForRepository = (repo: GithubRepository, branchName?: string): string | null => {
+        if (branchName) {
+            return repo.branches.find((branch) => branch.name === branchName)?.name ?? null;
+        }
+
+        const remembered = lastSelection();
+        if (remembered && remembered.owner === repo.owner && remembered.repo === repo.repo) {
+            const rememberedBranch = repo.branches.find((branch) => branch.name === remembered.branch);
+            if (rememberedBranch) return rememberedBranch.name;
+        }
+
+        return repo.branches.find((branch) => branch.isDefault)?.name ?? null;
+    };
+
+    const setSelectedRepository = (repo: GithubRepository, branchName?: string) => {
+        const nextSearchParams = new URLSearchParams(location.search);
+        const resolvedBranchName = resolveBranchNameForRepository(repo, branchName);
+
+        if (resolvedBranchName) nextSearchParams.set("branch", resolvedBranchName);
+        else nextSearchParams.delete("branch");
+
+        const search = nextSearchParams.toString();
+        navigate(`/${repo.owner}/${repo.repo}${search ? `?${search}` : ""}`);
     };
 
     const setSelectedBranch = (branchName: string) => {
-        setSearchParams({ branch: branchName });
-    };
+        const repo = selectedRepository();
+        if (!repo) return;
 
-    // Correct the URL if it doesn't match the selected repository/branch
-    createEffect(() => {
-        if (status() !== "authenticated") return; // TODO: Try to remove those checks (gate this context under auth guard)?
-
-        const selectedRepo = selectedRepository();
-        if (!selectedRepo) return;
-
-        const selectedRepoPath = `/${selectedRepo.owner}/${selectedRepo.repo}`;
-        const isRepositoryMismatch = urlOwner() !== selectedRepo.owner || urlRepo() !== selectedRepo.repo;
-
-        const selected = selectedBranch();
-        const selectedBranchName = selected?.name ?? null;
-        const branchNameFromUrl = urlBranch();
-        const isBranchMismatch = branchNameFromUrl !== selectedBranchName;
-
-        if (!isRepositoryMismatch && !isBranchMismatch) return;
-
-        if (isRepositoryMismatch) {
-            const nextSearchParams = new URLSearchParams(location.search);
-
-            if (selectedBranchName) nextSearchParams.set("branch", selectedBranchName);
-            else nextSearchParams.delete("branch");
-
-            const search = nextSearchParams.toString();
-            navigate(`${selectedRepoPath}${search ? `?${search}` : ""}`, { replace: true });
+        if (isRepositoryRoute()) {
+            setSearchParams({ branch: branchName });
             return;
         }
 
+        setSelectedRepository(repo, branchName);
+    };
+
+    createEffect(() => {
+        if (status() !== "authenticated") return;
+        if (!isRepositoryRoute()) return;
+
+        const repo = selectedRepository();
+        if (!repo) return;
+
+        const branch = selectedBranch();
+        const selectedBranchName = branch?.name ?? null;
+
+        if (urlBranch() === selectedBranchName) return;
+
         setSearchParams({ branch: selectedBranchName ?? undefined }, { replace: true });
+    });
+
+    createEffect(() => {
+        if (status() !== "authenticated") return;
+        if (!isRepositoryRoute()) return;
+
+        const repo = selectedRepository();
+        const branch = selectedBranch();
+        if (!repo || !branch) return;
+
+        setLastSelection({
+            owner: repo.owner,
+            repo: repo.repo,
+            branch: branch.name,
+        });
     });
 
     // Remote calls
@@ -159,7 +218,7 @@ export function GithubRepositoryProvider(props: { children?: JSXElement }) {
         );
         await refetchRepositories();
 
-        setSearchParams({ branch: newBranchName });
+        setSelectedRepository(repo, newBranchName);
     };
 
     return (

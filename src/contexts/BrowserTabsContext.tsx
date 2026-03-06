@@ -1,24 +1,8 @@
-import { createContext, onCleanup, useContext, type JSXElement } from "solid-js";
-import { parseJson } from "@/lib/utils";
-
-const ResumeContext = createContext<null>(null);
-
-export function DocumentProvider(props: { children?: JSXElement }) {
-    const { tabId, hasOtherTabs, dispose } = createTabSession();
-
-    onCleanup(dispose);
-
-    return <ResumeContext.Provider value={null}>{props.children}</ResumeContext.Provider>;
-}
-
-export function useResume() {
-    const ctx = useContext(ResumeContext);
-    if (!ctx) throw new Error("useResume must be used within a DocumentProvider");
-    return ctx;
-}
+import { parseJson } from "@/lib/parse-json";
 
 // Constants (storage keys, intervals)
-const STORAGE_PREFIX = "resumd.documents.v1";
+// TODO: Move to storage-keys.ts
+const STORAGE_PREFIX = "temp_prefix"; // TODO: Define prefix
 const TAB_ID_KEY = `${STORAGE_PREFIX}.tabId`;
 const TABS_KEY = `${STORAGE_PREFIX}.tabs`;
 const TAB_STALE_AFTER_MS = 20_000; // 20s old tab entries are considered stale and removed from the registry
@@ -65,7 +49,7 @@ function removeTab(tabId: string) {
     writeTabRegistry(registry);
 }
 
-function createTabSession() {
+export function createTabSession() {
     // Get current tab ID
     const navigationType = getNavigationType();
     const isNavigationTypeReloadLike = navigationType === "reload" || navigationType === "back_forward";

@@ -1,4 +1,4 @@
-import { createMemo, Show, type Accessor } from "solid-js";
+import { createMemo, type Accessor } from "solid-js";
 import clsx from "clsx";
 // Utils
 import { resolveMarkdown, type ParsedMarkdown } from "@/lib/parse-markdown";
@@ -10,7 +10,7 @@ import { useZoom, useZoomShortcuts } from "./ZoomContext";
 // Components
 import ZoomControl from "./ZoomControl";
 import PreviewPages from "./PreviewPages";
-import PreviewToolbar from "./toolbar/PreviewToolbar";
+import PreviewToolbar, { type PreviewToolbarConfig } from "./toolbar/PreviewToolbar";
 
 marked.use({
     tokenizer: {
@@ -22,7 +22,12 @@ marked.use({
     },
 });
 
-export default function Previewer(props: { class: string; markdown: Accessor<string>; css: Accessor<string> }) {
+export default function Previewer(props: {
+    class: string;
+    markdown: Accessor<string>;
+    css: Accessor<string>;
+    toolbar: PreviewToolbarConfig;
+}) {
     const { zoom } = useZoom();
     const { handleKeyboardEvent, handleWheelEvent } = useZoomShortcuts();
 
@@ -61,7 +66,7 @@ export default function Previewer(props: { class: string; markdown: Accessor<str
                 </div>
             </div>
 
-            <PreviewToolbar onExportPdf={handleExportPdf} onDownloadZip={handleDownloadZip} />
+            <PreviewToolbar onExportPdf={handleExportPdf} onDownloadZip={handleDownloadZip} toolbar={props.toolbar} />
 
             <div
                 class={clsx(

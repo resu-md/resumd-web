@@ -15,7 +15,7 @@ type TabConfig = {
     onChange: (value: string) => void;
 };
 
-export default function Editor(props: { class?: string; activeTabId: string; tabs: TabConfig[] }) {
+export default function Editor(props: { class?: string; activeTabId: string; tabs: TabConfig[]; readOnly?: boolean }) {
     const { theme } = useTheme();
 
     let editorContainer: HTMLDivElement | undefined;
@@ -50,6 +50,7 @@ export default function Editor(props: { class?: string; activeTabId: string; tab
             scrollBeyondLastLine: false,
             stickyScroll: { enabled: false },
             wordWrap: "on",
+            readOnly: props.readOnly ?? false,
             theme: theme() === "dark" ? THEME_DARK_ID : THEME_LIGHT_ID,
             lineNumbersMinChars: 4,
         });
@@ -126,6 +127,13 @@ export default function Editor(props: { class?: string; activeTabId: string; tab
 
         ensureThemesRegistered();
         monaco.editor.setTheme(theme() === "dark" ? THEME_DARK_ID : THEME_LIGHT_ID);
+    });
+
+    createEffect(() => {
+        if (!editor) return;
+        editor.updateOptions({
+            readOnly: props.readOnly ?? false,
+        });
     });
 
     onCleanup(() => {
