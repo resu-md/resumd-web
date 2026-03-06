@@ -3,7 +3,6 @@ import { DropdownMenu } from "@kobalte/core/dropdown-menu";
 import { FiChevronDown } from "solid-icons/fi";
 import { IoFolderOpen, IoLogoGithub } from "solid-icons/io";
 import GithubDropdown from "./GithubDropdown";
-import GithubDiff from "./GithubDiff";
 
 export default function PreviewToolbar(props: { onExportPdf: () => void; onDownloadZip: () => void }) {
     return (

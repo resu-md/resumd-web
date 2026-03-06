@@ -1,5 +1,6 @@
 import { useGithubAuth } from "@/contexts/github/GithubAuthContext";
 import { useGithubRepository } from "@/contexts/github/GithubRepositoryContext";
+import { useResume } from "@/contexts/ResumeContext";
 import { DropdownMenu } from "@kobalte/core/dropdown-menu";
 import clsx from "clsx";
 import { FiChevronDown, FiGitBranch } from "solid-icons/fi";
@@ -10,6 +11,7 @@ import GithubDiff from "./GithubDiff";
 
 export default function GithubDropdown() {
     const { user, status, logout } = useGithubAuth();
+    const { getBranchDiff } = useResume();
     const {
         repositories,
         isLoadingRepositories,
@@ -45,7 +47,7 @@ export default function GithubDropdown() {
                         <RiLogosGithubFill class="size-5" />
                         <span class="text-label-tertiary px-0.75">/</span>
                         <span>{selectedRepository()?.owner ?? user()?.username}</span>
-                        <Show when={repositories().length > 0}>
+                        <Show when={selectedRepository()}>
                             <span class="text-label-tertiary px-0.75">/</span>
                             <span>{selectedRepository()?.repo}</span>
                         </Show>
@@ -104,7 +106,7 @@ export default function GithubDropdown() {
                     </DropdownMenu.Portal>
                 </DropdownMenu>
 
-                <Show when={repositories().length > 0}>
+                <Show when={selectedRepository()}>
                     <DropdownMenu placement="bottom-start" gutter={8}>
                         <DropdownMenu.Trigger class="proeminent-button text-primary flex h-8.5 items-center gap-1 rounded-full text-sm">
                             <span class="ml-3 flex items-center gap-1.5">
@@ -138,31 +140,33 @@ export default function GithubDropdown() {
                                         </span>
                                     }
                                 >
-                                    {(branch) => (
-                                        <DropdownMenu.Item
-                                            class={clsx(
-                                                "group mx-1.5 flex cursor-pointer items-center justify-between rounded-lg px-3 py-0.75 outline-none",
-                                                selectedBranch()?.name === branch.name
-                                                    ? "bg-blue/95 text-white"
-                                                    : "data-highlighted:bg-fill-secondary",
-                                            )}
-                                            onSelect={() => setSelectedBranch(branch.name)}
-                                        >
-                                            <span>{branch.name}</span>
-                                            {/* TODO: Placeholder for the actuall diff values: */}
-                                            <div
+                                    {(branch) => {
+                                        const branchDiff = getBranchDiff(branch.name);
+                                        return (
+                                            <DropdownMenu.Item
                                                 class={clsx(
-                                                    "flex items-center gap-1",
+                                                    "group mx-1.5 flex cursor-pointer items-center justify-between rounded-lg px-3 py-0.75 outline-none",
                                                     selectedBranch()?.name === branch.name
-                                                        ? "text-white"
-                                                        : "text-label-tertiary",
+                                                        ? "bg-blue/95 text-white"
+                                                        : "data-highlighted:bg-fill-secondary",
                                                 )}
+                                                onSelect={() => setSelectedBranch(branch.name)}
                                             >
-                                                <span>+20</span>
-                                                <span>-5</span>
-                                            </div>
-                                        </DropdownMenu.Item>
-                                    )}
+                                                <span>{branch.name}</span>
+                                                <div
+                                                    class={clsx(
+                                                        "flex items-center gap-1",
+                                                        selectedBranch()?.name === branch.name
+                                                            ? "text-white"
+                                                            : "text-label-tertiary",
+                                                    )}
+                                                >
+                                                    <span>+{branchDiff.added}</span>
+                                                    <span>-{branchDiff.removed}</span>
+                                                </div>
+                                            </DropdownMenu.Item>
+                                        );
+                                    }}
                                 </For>
                                 <DropdownMenu.Separator class="border-fill-tertiary mx-4 my-1" />
                                 <DropdownMenu.Item

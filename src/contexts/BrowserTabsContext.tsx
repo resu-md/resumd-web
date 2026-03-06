@@ -1,15 +1,35 @@
 import { parseJson } from "@/lib/parse-json";
+import {
+    createContext,
+    createSignal,
+    onCleanup,
+    onMount,
+    useContext,
+    type Accessor,
+    type JSXElement,
+} from "solid-js";
 
-// Constants (storage keys, intervals)
-// TODO: Move to storage-keys.ts
-const STORAGE_PREFIX = "temp_prefix"; // TODO: Define prefix
+const STORAGE_PREFIX = "resumd.tabs.v1";
 const TAB_ID_KEY = `${STORAGE_PREFIX}.tabId`;
 const TABS_KEY = `${STORAGE_PREFIX}.tabs`;
-const TAB_STALE_AFTER_MS = 20_000; // 20s old tab entries are considered stale and removed from the registry
-const TAB_HEARTBEAT_INTERVAL_MS = 5_000; // Tabs update their last seen timestamp every 5s to indicate they're still active
+const TAB_STALE_AFTER_MS = 20_000;
+const TAB_HEARTBEAT_INTERVAL_MS = 5_000;
 
-// Navigation type detection
 type NavigationType = "navigate" | "reload" | "back_forward" | "prerender";
+type TabWorkspacePresence = {
+    repoKey: string | null;
+    branch: string | null;
+};
+
+type TabRegistryEntry = {
+    id: string;
+    lastSeen: number;
+    repoKey: string | null;
+    branch: string | null;
+};
+
+type TabRegistry = Record<string, TabRegistryEntry>;
+
 function getNavigationType(): NavigationType {
     const entries = performance.getEntriesByType("navigation");
     const entry = entries[0] as PerformanceNavigationTiming | undefined;
@@ -20,28 +40,42 @@ function getNavigationType(): NavigationType {
     return "navigate";
 }
 
-// Tab registry management
-type TabRegistry = Record<string, number>;
-function readTabRegistry(now = Date.now()) {
+function readTabRegistry(now = Date.now()): TabRegistry {
     const parsed = parseJson<TabRegistry>(localStorage.getItem(TABS_KEY));
-    if (!parsed || !(typeof parsed === "object" && parsed !== null)) return {};
+    if (!parsed || typeof parsed !== "object") return {};
 
     const nextRegistry: TabRegistry = {};
-    Object.entries(parsed).forEach(([tabId, lastSeen]) => {
-        if (typeof lastSeen !== "number") return;
-        if (now - lastSeen > TAB_STALE_AFTER_MS) return; // removes stale tabs
-        nextRegistry[tabId] = lastSeen;
+    Object.entries(parsed).forEach(([tabId, entry]) => {
+        if (!entry || typeof entry !== "object") return;
+        if (typeof entry.lastSeen !== "number") return;
+        if (now - entry.lastSeen > TAB_STALE_AFTER_MS) return;
+
+        nextRegistry[tabId] = {
+            id: tabId,
+            lastSeen: entry.lastSeen,
+            repoKey: typeof entry.repoKey === "string" ? entry.repoKey : null,
+            branch: typeof entry.branch === "string" ? entry.branch : null,
+        };
     });
+
     return nextRegistry;
 }
+
 function writeTabRegistry(registry: TabRegistry) {
     localStorage.setItem(TABS_KEY, JSON.stringify(registry));
 }
-function heartbeatTab(tabId: string) {
-    const registry = readTabRegistry();
-    registry[tabId] = Date.now();
+
+function upsertTab(tabId: string, presence: TabWorkspacePresence, now = Date.now()) {
+    const registry = readTabRegistry(now);
+    registry[tabId] = {
+        id: tabId,
+        lastSeen: now,
+        repoKey: presence.repoKey,
+        branch: presence.branch,
+    };
     writeTabRegistry(registry);
 }
+
 function removeTab(tabId: string) {
     const registry = readTabRegistry();
     if (!(tabId in registry)) return;
@@ -50,54 +84,138 @@ function removeTab(tabId: string) {
 }
 
 function createTabSession() {
-    // Get current tab ID
     const navigationType = getNavigationType();
     const isNavigationTypeReloadLike = navigationType === "reload" || navigationType === "back_forward";
     const previousTabId = sessionStorage.getItem(TAB_ID_KEY);
-    const tabId = isNavigationTypeReloadLike && previousTabId ? previousTabId : `tab_${crypto.randomUUID()}`; // reuse tabId on reload/back-forward, otherwise generate new
+    const tabId = isNavigationTypeReloadLike && previousTabId ? previousTabId : `tab_${crypto.randomUUID()}`;
 
-    // Identify current active tabs and register self
     const tabRegistry = readTabRegistry();
     const hasOtherTabs = Object.keys(tabRegistry).some((openTabId) => openTabId !== tabId);
-    tabRegistry[tabId] = Date.now();
-    writeTabRegistry(tabRegistry);
+    const isFreshTab = !isNavigationTypeReloadLike || previousTabId == null;
+
     sessionStorage.setItem(TAB_ID_KEY, tabId);
+    upsertTab(tabId, { repoKey: null, branch: null });
 
-    if (import.meta.env.PROD == false) {
-        console.log("Is new tab? ", previousTabId === tabId ? "No, same tab (reload/back-forward)" : "Yes, new tab");
-        console.log("Current open tabs: ", Object.keys(tabRegistry));
+    if (!import.meta.env.PROD) {
+        console.log("Is new tab?", isFreshTab ? "Yes" : "No (reload/back-forward)");
+        console.log("Open tabs:", Object.keys(readTabRegistry()));
     }
-
-    // Register intervals and event listeners to keep heartbeat and clean up on unload
-    const heartbeatIntervalId = window.setInterval(() => heartbeatTab(tabId), TAB_HEARTBEAT_INTERVAL_MS);
-    const handleFocus = () => {
-        heartbeatTab(tabId);
-    };
-    const handleVisibilityChange = () => {
-        if (document.visibilityState !== "visible") return;
-        heartbeatTab(tabId);
-    };
-    const handleBeforeUnload = () => {
-        removeTab(tabId);
-    };
-
-    window.addEventListener("focus", handleFocus);
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    window.addEventListener("pagehide", handleBeforeUnload);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    const dispose = () => {
-        window.clearInterval(heartbeatIntervalId);
-        window.removeEventListener("focus", handleFocus);
-        window.removeEventListener("beforeunload", handleBeforeUnload);
-        window.removeEventListener("pagehide", handleBeforeUnload);
-        document.removeEventListener("visibilitychange", handleVisibilityChange);
-        removeTab(tabId);
-    };
 
     return {
         tabId,
         hasOtherTabs,
-        dispose,
+        isFreshTab,
     };
 }
+
+type BrowserTabsContextValue = {
+    tabId: Accessor<string>;
+    isFreshTab: Accessor<boolean>;
+    hasOtherTabsAtOpen: Accessor<boolean>;
+    registryRevision: Accessor<number>;
+    announceWorkspace: (repoKey: string | null, branch: string | null) => void;
+    getPeersByRepo: (repoKey: string) => TabRegistryEntry[];
+    getPeersByRepoBranch: (repoKey: string, branch: string) => TabRegistryEntry[];
+};
+
+const BrowserTabsContext = createContext<BrowserTabsContextValue>();
+
+export function BrowserTabsProvider(props: { children?: JSXElement }) {
+    const session = createTabSession();
+
+    const [tabId] = createSignal(session.tabId);
+    const [isFreshTab] = createSignal(session.isFreshTab);
+    const [hasOtherTabsAtOpen] = createSignal(session.hasOtherTabs);
+    const [registryRevision, setRegistryRevision] = createSignal(0);
+    const [presence, setPresence] = createSignal<TabWorkspacePresence>({
+        repoKey: null,
+        branch: null,
+    });
+
+    const heartbeat = () => {
+        upsertTab(tabId(), presence());
+        setRegistryRevision((value) => value + 1);
+    };
+
+    const announceWorkspace = (repoKey: string | null, branch: string | null) => {
+        const prev = presence();
+        if (prev.repoKey === repoKey && prev.branch === branch) return;
+
+        setPresence({ repoKey, branch });
+        upsertTab(tabId(), { repoKey, branch });
+        setRegistryRevision((value) => value + 1);
+    };
+
+    const getPeersByRepo = (repoKey: string) => {
+        registryRevision();
+        return Object.values(readTabRegistry()).filter((entry) => entry.id !== tabId() && entry.repoKey === repoKey);
+    };
+
+    const getPeersByRepoBranch = (repoKey: string, branch: string) => {
+        registryRevision();
+        return Object.values(readTabRegistry()).filter(
+            (entry) => entry.id !== tabId() && entry.repoKey === repoKey && entry.branch === branch,
+        );
+    };
+
+    onMount(() => {
+        heartbeat();
+
+        const heartbeatIntervalId = window.setInterval(heartbeat, TAB_HEARTBEAT_INTERVAL_MS);
+        const handleFocus = () => {
+            heartbeat();
+        };
+        const handleVisibilityChange = () => {
+            if (document.visibilityState !== "visible") return;
+            heartbeat();
+        };
+        const handleStorage = (event: StorageEvent) => {
+            if (event.key !== TABS_KEY) return;
+            setRegistryRevision((value) => value + 1);
+        };
+        const handleBeforeUnload = () => {
+            removeTab(tabId());
+        };
+
+        window.addEventListener("focus", handleFocus);
+        window.addEventListener("storage", handleStorage);
+        window.addEventListener("beforeunload", handleBeforeUnload);
+        window.addEventListener("pagehide", handleBeforeUnload);
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+
+        onCleanup(() => {
+            window.clearInterval(heartbeatIntervalId);
+            window.removeEventListener("focus", handleFocus);
+            window.removeEventListener("storage", handleStorage);
+            window.removeEventListener("beforeunload", handleBeforeUnload);
+            window.removeEventListener("pagehide", handleBeforeUnload);
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+            removeTab(tabId());
+            setRegistryRevision((value) => value + 1);
+        });
+    });
+
+    return (
+        <BrowserTabsContext.Provider
+            value={{
+                tabId,
+                isFreshTab,
+                hasOtherTabsAtOpen,
+                registryRevision,
+                announceWorkspace,
+                getPeersByRepo,
+                getPeersByRepoBranch,
+            }}
+        >
+            {props.children}
+        </BrowserTabsContext.Provider>
+    );
+}
+
+export function useBrowserTabs() {
+    const context = useContext(BrowserTabsContext);
+    if (!context) throw new Error("useBrowserTabs must be used within a BrowserTabsProvider");
+    return context;
+}
+
+export type { TabWorkspacePresence, TabRegistryEntry };
