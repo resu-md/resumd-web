@@ -3,12 +3,16 @@ import {
     createEffect,
     createMemo,
     createResource,
+    createSignal,
     useContext,
     type Accessor,
     type JSXElement,
+    type Resource,
 } from "solid-js";
 import { useLocation, useNavigate, useParams, useSearchParams } from "@solidjs/router";
 import { useGithubAuth } from "./GithubAuthContext";
+import { makePersisted } from "@solid-primitives/storage";
+import { GITHUB_STORAGE_KEYS } from "@/lib/storage-keys";
 
 export type GithubBranch = {
     name: string;
@@ -26,8 +30,7 @@ export type GithubRepository = {
 };
 
 const GithubRepositoryContext = createContext<{
-    repositories: Accessor<GithubRepository[]>;
-    isLoadingRepositories: Accessor<boolean>;
+    repositories: Resource<GithubRepository[] | undefined>;
     selectedRepository: Accessor<GithubRepository | null>;
     setSelectedRepository: (repo: GithubRepository) => void;
     selectedBranch: Accessor<GithubBranch | null>;
@@ -55,10 +58,19 @@ export function GithubRepositoryProvider(props: { children?: JSXElement }) {
             const result = await api<{ repos: GithubRepository[] }>("/api/github/installations/branches");
             return result.repos;
         },
+        {
+            storage: (init) => {
+                const [repositories, setRepositories] = makePersisted(
+                    createSignal<GithubRepository[] | undefined>(init),
+                    {
+                        name: GITHUB_STORAGE_KEYS.REPOSITORIES,
+                        storage: localStorage,
+                    },
+                );
+                return [repositories, setRepositories];
+            },
+        },
     );
-
-    const repositories = createMemo(() => repositoriesResource() ?? []);
-    const isLoadingRepositories = createMemo(() => status() === "authenticated" && repositoriesResource.loading);
 
     const selectedRepository = createMemo(() => {
         const repos = repositoriesResource();
@@ -153,8 +165,7 @@ export function GithubRepositoryProvider(props: { children?: JSXElement }) {
     return (
         <GithubRepositoryContext.Provider
             value={{
-                repositories,
-                isLoadingRepositories,
+                repositories: repositoriesResource,
                 selectedRepository,
                 setSelectedRepository,
                 selectedBranch,

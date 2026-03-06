@@ -12,7 +12,6 @@ export default function GithubDropdown() {
     const { user, status, logout } = useGithubAuth();
     const {
         repositories,
-        isLoadingRepositories,
         selectedRepository,
         selectedBranch,
         setSelectedRepository,
@@ -38,14 +37,14 @@ export default function GithubDropdown() {
     };
 
     return (
-        <Show when={status() === "authenticated" && !isLoadingRepositories()}>
-            <div class="animate-fade-in flex items-center gap-2">
+        <Show when={status() === "authenticated" && repositories() !== undefined}>
+            <div class="flex items-center gap-2">
                 <DropdownMenu placement="bottom-start" gutter={8}>
                     <DropdownMenu.Trigger class="proeminent-button flex h-8.5 items-center rounded-full pr-3.5 pl-2 font-mono text-sm">
                         <RiLogosGithubFill class="size-5" />
                         <span class="text-label-tertiary px-0.75">/</span>
                         <span>{selectedRepository()?.owner ?? user()?.username}</span>
-                        <Show when={repositories().length > 0}>
+                        <Show when={repositories()!.length > 0}>
                             <span class="text-label-tertiary px-0.75">/</span>
                             <span>{selectedRepository()?.repo}</span>
                         </Show>
@@ -57,7 +56,7 @@ export default function GithubDropdown() {
                                 "flex flex-col gap-0.5 rounded-xl py-1.5 text-sm outline-none",
                             )}
                         >
-                            <Show when={repositories().length > 0}>
+                            <Show when={repositories()!.length > 0}>
                                 <span class="text-label-tertiary mx-1.5 px-3 pt-1 pb-1 text-xs font-semibold">
                                     Repositories
                                 </span>
@@ -104,7 +103,7 @@ export default function GithubDropdown() {
                     </DropdownMenu.Portal>
                 </DropdownMenu>
 
-                <Show when={repositories().length > 0}>
+                <Show when={repositories()!.length > 0}>
                     <DropdownMenu placement="bottom-start" gutter={8}>
                         <DropdownMenu.Trigger class="proeminent-button text-primary flex h-8.5 items-center gap-1 rounded-full text-sm">
                             <span class="ml-3 flex items-center gap-1.5">
@@ -149,12 +148,13 @@ export default function GithubDropdown() {
                                             onSelect={() => setSelectedBranch(branch.name)}
                                         >
                                             <span>{branch.name}</span>
+                                            {/* TODO: Placeholder for the actuall diff values: */}
                                             <div
                                                 class={clsx(
-                                                    "flex items-center gap-1",
+                                                    "flex items-center gap-1 font-mono text-xs",
                                                     selectedBranch()?.name === branch.name
                                                         ? "text-white"
-                                                        : "text-label-tertiary",
+                                                        : "text-label-secondary",
                                                 )}
                                             >
                                                 <span>+20</span>

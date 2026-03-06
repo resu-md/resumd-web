@@ -9,11 +9,10 @@ import {
     type Resource,
     type Setter,
 } from "solid-js";
-import { isServer } from "solid-js/web";
+import { isServer } from "solid-js/web"; // TODO: Is it necessary?
 import { makePersisted, storageSync } from "@solid-primitives/storage";
 import { useNavigate } from "@solidjs/router";
-
-const GITHUB_SESSION_KEY = "github-session";
+import { GITHUB_STORAGE_KEYS } from "@/lib/storage-keys";
 
 export type GithubUser = {
     username: string;
@@ -136,7 +135,7 @@ export function GithubAuthProvider(props: ParentProps) {
     const [session, { mutate: mutateSession, refetch: refetchSession }] = createResource<GithubUser | null>(
         fetchSession,
         {
-            storage: createPersistedResourceStorage<GithubUser | null>(GITHUB_SESSION_KEY),
+            storage: createPersistedResourceStorage<GithubUser | null>(GITHUB_STORAGE_KEYS.SESSION),
         },
     );
 
@@ -174,7 +173,7 @@ export function GithubAuthProvider(props: ParentProps) {
         return (await response.text()) as T;
     };
 
-    const login = (owner: string, repo: string, returnTo = `/${owner}/${repo}`) => {
+    const login = (owner: string, repo: string, returnTo = `${import.meta.env.BASE_URL}${owner}/${repo}`) => {
         if (isServer) return;
 
         const params = new URLSearchParams({
@@ -195,6 +194,11 @@ export function GithubAuthProvider(props: ParentProps) {
             });
         } finally {
             finishSession();
+            if (!isServer) {
+                for (const key of Object.values(GITHUB_STORAGE_KEYS)) {
+                    localStorage.removeItem(key);
+                }
+            }
             navigate("/", { replace: true });
         }
     };
