@@ -6,10 +6,9 @@ import { FiChevronDown, FiGitBranch } from "solid-icons/fi";
 import { IoLogOutOutline } from "solid-icons/io";
 import { RiLogosGithubFill } from "solid-icons/ri";
 import { For, Show } from "solid-js";
-import GithubDiff from "./GithubDiff";
 
 export default function GithubDropdown() {
-    const { user, status, logout } = useGithubAuth();
+    const { user, logout } = useGithubAuth();
     const {
         repositories,
         selectedRepository,
@@ -37,7 +36,7 @@ export default function GithubDropdown() {
     };
 
     return (
-        <Show when={status() === "authenticated" && repositories() !== undefined}>
+        <Show when={repositories() !== undefined}>
             <div class="flex items-center gap-2">
                 <DropdownMenu placement="bottom-start" gutter={8}>
                     <DropdownMenu.Trigger class="proeminent-button flex h-8.5 items-center rounded-full pr-3.5 pl-2 font-mono text-sm">
@@ -176,8 +175,6 @@ export default function GithubDropdown() {
                         </DropdownMenu.Portal>
                     </DropdownMenu>
                 </Show>
-
-                <GithubDiff />
             </div>
         </Show>
     );

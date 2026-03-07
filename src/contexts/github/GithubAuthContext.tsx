@@ -32,7 +32,7 @@ class ApiError extends Error {
 }
 
 type GithubAuthContextValue = {
-    session: Resource<GithubUser | null>;
+    // session: Resource<GithubUser | null>;
     user: Accessor<GithubUser | null>;
     status: Accessor<GithubAuthStatus>;
     api: <T>(path: string, init?: RequestInit) => Promise<T>;
@@ -108,6 +108,8 @@ export function GithubAuthProvider(props: ParentProps) {
 
     const fetchSession = async (): Promise<GithubUser | null> => {
         const myEpoch = sessionEpoch;
+
+        await new Promise((resolve) => setTimeout(resolve, 3000));
 
         const response = await fetch("/api/github/me", {
             method: "GET",
@@ -215,7 +217,7 @@ export function GithubAuthProvider(props: ParentProps) {
     });
 
     const value: GithubAuthContextValue = {
-        session,
+        // session,
         user,
         status,
         api,

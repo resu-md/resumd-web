@@ -16,7 +16,7 @@ type DiffTabModel = {
     viewState: monaco.editor.IDiffEditorViewState | null;
 };
 
-export default function DiffEditor(props: { class?: string; activeTabId: string; tabs: DiffTabConfig[] }) {
+export default function MonacoDiffEditor(props: { class?: string; activeTabId: string; tabs: DiffTabConfig[] }) {
     const { theme } = useTheme();
 
     let editorContainer: HTMLDivElement | undefined;
@@ -64,7 +64,8 @@ export default function DiffEditor(props: { class?: string; activeTabId: string;
         const targetModel = models.get(activeTabId);
 
         if (!currentModel || !targetModel) return;
-        if (currentModel.original === targetModel.originalModel && currentModel.modified === targetModel.modifiedModel) return;
+        if (currentModel.original === targetModel.originalModel && currentModel.modified === targetModel.modifiedModel)
+            return;
 
         models.forEach((tabModel) => {
             if (currentModel.original === tabModel.originalModel && currentModel.modified === tabModel.modifiedModel) {

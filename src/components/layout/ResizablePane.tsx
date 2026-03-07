@@ -2,7 +2,7 @@ import { createSignal, type JSXElement } from "solid-js";
 import { makePersisted } from "@solid-primitives/storage";
 
 export default function ResizablePane(props: {
-    children: JSXElement;
+    children?: JSXElement;
     storageKey: string;
     defaultWidth: number;
     minWidth?: number;

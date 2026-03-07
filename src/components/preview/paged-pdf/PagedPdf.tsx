@@ -1,10 +1,12 @@
 import { createEffect, onCleanup, onMount } from "solid-js";
-import { useZoom, useZoomShortcuts } from "./ZoomContext";
+import { useZoom, useZoomShortcuts } from "../zoom/ZoomContext";
 import previewTemplate from "./pdf-preview.html?raw";
 
 const PAGED_JS_URL = `${import.meta.env.BASE_URL}vendor/pagedjs/paged.js`;
 
-export default function PreviewPages(props: { html: string; css: string; zoom: number }) {
+// TODO: Bug: setting padding on body puts padding on the outer container not the page
+
+export default function PagedPdfPreview(props: { html: string; css: string; zoom: number }) {
     const { handleKeyboardEvent, handleWheelEvent } = useZoomShortcuts();
     const { zoom, setZoom } = useZoom();
 

@@ -15,7 +15,7 @@ type TabConfig = {
     onChange: (value: string) => void;
 };
 
-export default function Editor(props: { class?: string; activeTabId: string; tabs: TabConfig[] }) {
+export default function MonacoEditor(props: { class?: string; activeTabId: string; tabs: TabConfig[] }) {
     const { theme } = useTheme();
 
     let editorContainer: HTMLDivElement | undefined;

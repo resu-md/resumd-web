@@ -1,20 +1,12 @@
 import { createContext, onCleanup, useContext, type JSXElement } from "solid-js";
-import { parseJson } from "@/lib/utils";
 
-const ResumeContext = createContext<null>(null);
-
-export function DocumentProvider(props: { children?: JSXElement }) {
-    const { tabId, hasOtherTabs, dispose } = createTabSession();
-
-    onCleanup(dispose);
-
-    return <ResumeContext.Provider value={null}>{props.children}</ResumeContext.Provider>;
-}
-
-export function useResume() {
-    const ctx = useContext(ResumeContext);
-    if (!ctx) throw new Error("useResume must be used within a DocumentProvider");
-    return ctx;
+function parseJson<T>(value: string | null): T | null {
+    if (value === null) return null;
+    try {
+        return JSON.parse(value) as T;
+    } catch {
+        return null;
+    }
 }
 
 // Constants (storage keys, intervals)

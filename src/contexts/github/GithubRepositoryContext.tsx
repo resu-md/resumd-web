@@ -106,36 +106,40 @@ export function GithubRepositoryProvider(props: { children?: JSXElement }) {
         setSearchParams({ branch: branchName });
     };
 
+    console.log("Selected repository:", selectedRepository());
+    console.log("Selected branch:", selectedBranch());
+
     // Correct the URL if it doesn't match the selected repository/branch
-    createEffect(() => {
-        if (status() !== "authenticated") return; // TODO: Try to remove those checks (gate this context under auth guard)?
+    // createEffect(async () => {
+    //     if (status() !== "authenticated") return; // TODO: Try to remove those checks (gate this context under auth guard)?
 
-        const selectedRepo = selectedRepository();
-        if (!selectedRepo) return;
+    //     const selectedRepo = selectedRepository();
+    //     if (!selectedRepo) return;
 
-        const selectedRepoPath = `/${selectedRepo.owner}/${selectedRepo.repo}`;
-        const isRepositoryMismatch = urlOwner() !== selectedRepo.owner || urlRepo() !== selectedRepo.repo;
+    //     const selectedRepoPath = `/${selectedRepo.owner}/${selectedRepo.repo}`;
+    //     const isRepositoryMismatch = urlOwner() !== selectedRepo.owner || urlRepo() !== selectedRepo.repo;
 
-        const selected = selectedBranch();
-        const selectedBranchName = selected?.name ?? null;
-        const branchNameFromUrl = urlBranch();
-        const isBranchMismatch = branchNameFromUrl !== selectedBranchName;
+    //     const selected = selectedBranch();
+    //     const selectedBranchName = selected?.name ?? null;
+    //     const branchNameFromUrl = urlBranch();
+    //     const isBranchMismatch = branchNameFromUrl !== selectedBranchName;
 
-        if (!isRepositoryMismatch && !isBranchMismatch) return;
+    //     if (!isRepositoryMismatch && !isBranchMismatch) return;
 
-        if (isRepositoryMismatch) {
-            const nextSearchParams = new URLSearchParams(location.search);
+    //     if (isRepositoryMismatch) {
+    //         const nextSearchParams = new URLSearchParams(location.search);
 
-            if (selectedBranchName) nextSearchParams.set("branch", selectedBranchName);
-            else nextSearchParams.delete("branch");
+    //         if (selectedBranchName) nextSearchParams.set("branch", selectedBranchName);
+    //         else nextSearchParams.delete("branch");
 
-            const search = nextSearchParams.toString();
-            navigate(`${selectedRepoPath}${search ? `?${search}` : ""}`, { replace: true });
-            return;
-        }
+    //         const search = nextSearchParams.toString();
+    //         await new Promise((resolve) => setTimeout(resolve, 3000)); // Wait for URL updates to propagate before navigating (otherwise we might navigate before the new URL is
+    //         navigate(`${selectedRepoPath}${search ? `?${search}` : ""}`, { replace: true });
+    //         return;
+    //     }
 
-        setSearchParams({ branch: selectedBranchName ?? undefined }, { replace: true });
-    });
+    //     setSearchParams({ branch: selectedBranchName ?? undefined }, { replace: true });
+    // });
 
     // Remote calls
 

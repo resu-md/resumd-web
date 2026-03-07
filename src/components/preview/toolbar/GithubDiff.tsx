@@ -1,23 +1,12 @@
-import { createSignal, Show } from "solid-js";
-import { IoEyeOffOutline, IoEyeOutline } from "solid-icons/io";
-
-export default function GithubDiff() {
-    const [isDiffMode, setIsDiffMode] = createSignal(false);
-
+export default function GithubDiff(props: { diffMode: boolean; onToggleDiffMode: (value: boolean) => void }) {
     return (
-        <div class="group/diff flex items-center rounded-md px-1 py-1 font-mono text-sm">
+        <button
+            title={!props.diffMode ? "Show diff" : "Hide diff"}
+            class="group/diff hover:bg-fill-quaternary flex items-center rounded-lg px-1.5 py-0.75 font-mono text-sm hover:backdrop-blur-2xl"
+            onClick={() => props.onToggleDiffMode(!props.diffMode)}
+        >
             <span class="text-green">+20</span>
             <span class="text-red ml-1">-5</span>
-
-            <button
-                title={isDiffMode() ? "Hide diff" : "Show diff"}
-                class="text-label-secondary hover:bg-fill-secondary ml-2 flex size-6 items-center justify-center rounded-lg opacity-0 group-hover/diff:opacity-100"
-                onClick={() => setIsDiffMode(!isDiffMode())}
-            >
-                <Show when={isDiffMode()} fallback={<IoEyeOutline size={15} class="text-label-secondary" />}>
-                    <IoEyeOffOutline size={15} class="text-label-secondary" />
-                </Show>
-            </button>
-        </div>
+        </button>
     );
 }

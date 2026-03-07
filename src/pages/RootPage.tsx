@@ -1,52 +1,39 @@
+import { Match, Switch, createSignal } from "solid-js";
+import { exportAsPdf } from "@/lib/export-as-pdf";
+import { exportAsZip } from "@/lib/export-as-zip";
+// Contexts
 import { useGithubAuth } from "@/contexts/github/GithubAuthContext";
-import { useParams } from "@solidjs/router";
-import { Show, createEffect, createSignal, on } from "solid-js";
+import { AnonymousResumeProvider, useAnonymousResume } from "@/contexts/AnonymousResumeContext";
+// Components
 import MonacoEditor from "@/components/editor/monaco-editor/MonacoEditor";
 import EditorShell from "@/components/editor/EditorShell";
+import Preview from "@/components/preview/Preview";
 import ToolbarShell from "@/components/preview/toolbar/ToolbarShell";
 import ExportPdfButton from "@/components/preview/toolbar/ExportPdfButton";
-import { exportAsPdf } from "@/lib/export-as-pdf";
-import Preview from "@/components/preview/Preview";
-import GithubDropdown from "@/components/preview/toolbar/GithubDropdown";
-import { AnonymousResumeProvider, useAnonymousResume } from "@/contexts/AnonymousResumeContext";
-import GithubDiff from "@/components/preview/toolbar/GithubDiff";
-import { GithubRepositoryProvider } from "@/contexts/github/GithubRepositoryContext";
+import SaveDropdown from "@/components/preview/toolbar/SaveDropdown";
 
-export default function AuthenticatedEditorPage() {
-    const params = useParams<{ owner: string; repo: string }>();
-    const { status, login } = useGithubAuth();
-
-    createEffect(
-        on(status, (s, prev) => {
-            // `prev !== "authenticated"` used to prevent logout triggers login loop (since this component may take some time to unmount)
-            if (s === "unauthenticated" && prev !== "authenticated") {
-                login(params.owner, params.repo);
-            }
-        }),
-    );
+// TODO: Maybe rename? (AnonymousEditorPage?)
+export default function RootPage() {
+    const { user } = useGithubAuth();
 
     return (
-        <Show
-            when={status() === "authenticated"}
-            fallback={
-                <main class="bg-system-secondary flex h-dvh w-dvw items-center justify-center">
-                    <p class="text-sm text-gray-500">
-                        {status() === "loading" ? "Checking GitHub authentication..." : "Redirecting to GitHub..."}
-                    </p>
-                </main>
-            }
-        >
-            <GithubRepositoryProvider>
+        <Switch fallback={<div class="bg-red h-screen w-screen">none</div>}>
+            <Match when={user() === null}>
+                {/* No user (may be momentary) */}
                 <AnonymousResumeProvider>
-                    <AuthenticatedEditor />
+                    <AnonymousEditor />
                 </AnonymousResumeProvider>
-            </GithubRepositoryProvider>
-        </Show>
+            </Match>
+            <Match when={user() !== null}>
+                {/* Has user (may be optimistic) */}
+                {/* TODO: Redirect to a valid route /:owner/:repo */}
+                <div>logged in, waiting for redirect</div>
+            </Match>
+        </Switch>
     );
 }
 
-function AuthenticatedEditor() {
-    const [diffMode, setDiffMode] = createSignal(false);
+function AnonymousEditor() {
     const { markdown, css, setMarkdown, setCss } = useAnonymousResume();
 
     return (
@@ -77,14 +64,11 @@ function AuthenticatedEditor() {
                 <Preview markdown={markdown} css={css}>
                     {(parsedMarkdown, html) => (
                         <ToolbarShell
-                            leading={
-                                <>
-                                    <GithubDropdown />
-                                    <GithubDiff diffMode={diffMode()} onToggleDiffMode={setDiffMode} />
-                                </>
-                            }
                             trailing={
                                 <>
+                                    <SaveDropdown
+                                        onDownloadZip={() => exportAsZip(html(), css(), parsedMarkdown().metadata)}
+                                    />
                                     <ExportPdfButton
                                         onClick={() => exportAsPdf(html(), css(), parsedMarkdown().metadata)}
                                     />
