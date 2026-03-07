@@ -1,25 +1,27 @@
-import { useGithubAuth } from "@/contexts/github/GithubAuthContext";
-import { useParams } from "@solidjs/router";
 import { Show, createEffect, createSignal, on } from "solid-js";
+import { useParams } from "@solidjs/router";
+import { exportAsPdf } from "@/lib/export-as-pdf";
+// Contexts
+import { useGithubAuth } from "@/contexts/github/GithubAuthContext";
+import { AnonymousResumeProvider, useAnonymousResume } from "@/contexts/AnonymousResumeContext";
+import { GithubRepositoryProvider } from "@/contexts/github/GithubRepositoryContext";
+// Components
 import MonacoEditor from "@/components/editor/monaco-editor/MonacoEditor";
 import EditorShell from "@/components/editor/EditorShell";
 import ToolbarShell from "@/components/preview/toolbar/ToolbarShell";
 import ExportPdfButton from "@/components/preview/toolbar/ExportPdfButton";
-import { exportAsPdf } from "@/lib/export-as-pdf";
-import Preview from "@/components/preview/Preview";
-import GithubDropdown from "@/components/preview/toolbar/GithubDropdown";
-import { AnonymousResumeProvider, useAnonymousResume } from "@/contexts/AnonymousResumeContext";
 import GithubDiff from "@/components/preview/toolbar/GithubDiff";
-import { GithubRepositoryProvider } from "@/contexts/github/GithubRepositoryContext";
+import GithubDropdown from "@/components/preview/toolbar/GithubDropdown";
+import Preview from "@/components/preview/Preview";
 
 export default function AuthenticatedEditorPage() {
     const params = useParams<{ owner: string; repo: string }>();
-    const { status, login } = useGithubAuth();
+    const { user, authState, login } = useGithubAuth();
 
     createEffect(
-        on(status, (s, prev) => {
-            // `prev !== "authenticated"` used to prevent logout triggers login loop (since this component may take some time to unmount)
-            if (s === "unauthenticated" && prev !== "authenticated") {
+        on(authState, (state, prev) => {
+            // `prev !== "authenticated"` check used to prevent logout triggers login loop (since this component may take some time to unmount)
+            if (state === "unauthenticated" && prev !== "authenticated") {
                 login(params.owner, params.repo);
             }
         }),
@@ -27,12 +29,11 @@ export default function AuthenticatedEditorPage() {
 
     return (
         <Show
-            when={status() === "authenticated"}
+            when={user()} // Loads page optimistically
             fallback={
-                <main class="bg-system-secondary flex h-dvh w-dvw items-center justify-center">
-                    <p class="text-sm text-gray-500">
-                        {status() === "loading" ? "Checking GitHub authentication..." : "Redirecting to GitHub..."}
-                    </p>
+                // TODO: Improve visually
+                <main class="text-label-secondary flex h-dvh w-dvw items-center justify-center">
+                    Logging in to GitHub...
                 </main>
             }
         >

@@ -41,7 +41,7 @@ const GithubRepositoryContext = createContext<{
 }>();
 
 export function GithubRepositoryProvider(props: { children?: JSXElement }) {
-    const { status, api } = useGithubAuth();
+    const { authState, api } = useGithubAuth();
 
     const location = useLocation();
     const params = useParams<{ owner?: string; repo?: string }>();
@@ -53,7 +53,7 @@ export function GithubRepositoryProvider(props: { children?: JSXElement }) {
     const urlBranch = () => searchParams.branch ?? null;
 
     const [repositoriesResource, { refetch: refetchRepositories }] = createResource(
-        () => (status() === "authenticated" ? "authenticated" : null),
+        () => (authState() === "authenticated" ? "authenticated" : null), // Only fetch repositories when authenticated
         async () => {
             const result = await api<{ repos: GithubRepository[] }>("/api/github/installations/branches");
             return result.repos;
@@ -109,39 +109,33 @@ export function GithubRepositoryProvider(props: { children?: JSXElement }) {
     console.log("Selected repository:", selectedRepository());
     console.log("Selected branch:", selectedBranch());
 
+    /**
+     * URL synchronization
+     */
+
     // Correct the URL if it doesn't match the selected repository/branch
-    // createEffect(async () => {
-    //     if (status() !== "authenticated") return; // TODO: Try to remove those checks (gate this context under auth guard)?
+    createEffect(() => {
+        selectedRepository();
+        selectedBranch();
 
-    //     const selectedRepo = selectedRepository();
-    //     if (!selectedRepo) return;
+        const repos = repositoriesResource();
+        if (!repos || repos.length === 0) return;
 
-    //     const selectedRepoPath = `/${selectedRepo.owner}/${selectedRepo.repo}`;
-    //     const isRepositoryMismatch = urlOwner() !== selectedRepo.owner || urlRepo() !== selectedRepo.repo;
+        const repo = selectedRepository();
+        if (!repo) return;
 
-    //     const selected = selectedBranch();
-    //     const selectedBranchName = selected?.name ?? null;
-    //     const branchNameFromUrl = urlBranch();
-    //     const isBranchMismatch = branchNameFromUrl !== selectedBranchName;
+        const branchName = selectedBranch()?.name ?? null;
+        const repositoryOutOfSync = urlOwner() !== repo.owner || urlRepo() !== repo.repo;
+        const branchOutOfSync = urlBranch() !== branchName;
 
-    //     if (!isRepositoryMismatch && !isBranchMismatch) return;
+        if (repositoryOutOfSync || branchOutOfSync) {
+            navigate(buildRepositoryUrl(repo, branchName), { replace: true });
+        }
+    });
 
-    //     if (isRepositoryMismatch) {
-    //         const nextSearchParams = new URLSearchParams(location.search);
-
-    //         if (selectedBranchName) nextSearchParams.set("branch", selectedBranchName);
-    //         else nextSearchParams.delete("branch");
-
-    //         const search = nextSearchParams.toString();
-    //         await new Promise((resolve) => setTimeout(resolve, 3000)); // Wait for URL updates to propagate before navigating (otherwise we might navigate before the new URL is
-    //         navigate(`${selectedRepoPath}${search ? `?${search}` : ""}`, { replace: true });
-    //         return;
-    //     }
-
-    //     setSearchParams({ branch: selectedBranchName ?? undefined }, { replace: true });
-    // });
-
-    // Remote calls
+    /**
+     * Remote calls
+     */
 
     const handleManageRepositories = () => {
         window.location.href = "/api/github/installations/manage";
@@ -188,4 +182,9 @@ export function useGithubRepository() {
     const context = useContext(GithubRepositoryContext);
     if (!context) throw new Error("useGithubRepository must be used within a GithubRepositoryProvider");
     return context;
+}
+
+function buildRepositoryUrl(repo: GithubRepository, branchName: string | null) {
+    const path = `/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.repo)}`;
+    return branchName ? `${path}?branch=${encodeURIComponent(branchName)}` : path;
 }

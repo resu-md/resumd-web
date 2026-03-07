@@ -19,22 +19,15 @@ export type GithubUser = {
     avatarUrl: string;
 };
 
-export type GithubAuthStatus = "loading" | "authenticated" | "unauthenticated";
-
-class ApiError extends Error {
-    status: number;
-
-    constructor(message: string, status: number) {
-        super(message);
-        this.name = "ApiError";
-        this.status = status;
-    }
-}
+export type GithubAuthState = "unknown" | "authenticated" | "unauthenticated";
+// export type GithubFetchStatus = "idle" | "fetching";
+// export type GithubCacheStatus = "empty" | "cached" | "refreshing";
 
 type GithubAuthContextValue = {
-    // session: Resource<GithubUser | null>;
-    user: Accessor<GithubUser | null>;
-    status: Accessor<GithubAuthStatus>;
+    user: Accessor<GithubUser | null | undefined>;
+    authState: Accessor<GithubAuthState>;
+    // fetchStatus: Accessor<GithubFetchStatus>;
+    // cacheStatus: Accessor<GithubCacheStatus>;
     api: <T>(path: string, init?: RequestInit) => Promise<T>;
     login: (owner: string, repo: string, returnTo?: string) => void;
     logout: () => Promise<void>;
@@ -81,6 +74,16 @@ async function readErrorMessage(response: Response): Promise<string> {
     }
 }
 
+class ApiError extends Error {
+    status: number;
+
+    constructor(message: string, status: number) {
+        super(message);
+        this.name = "ApiError";
+        this.status = status;
+    }
+}
+
 async function toApiError(response: Response): Promise<ApiError> {
     return new ApiError(await readErrorMessage(response), response.status);
 }
@@ -108,8 +111,6 @@ export function GithubAuthProvider(props: ParentProps) {
 
     const fetchSession = async (): Promise<GithubUser | null> => {
         const myEpoch = sessionEpoch;
-
-        await new Promise((resolve) => setTimeout(resolve, 3000));
 
         const response = await fetch("/api/github/me", {
             method: "GET",
@@ -154,6 +155,7 @@ export function GithubAuthProvider(props: ParentProps) {
         });
 
         if (response.status === 401) {
+            // TODO: Check authState? If it is loading should logout?
             finishSession();
             throw new ApiError("Unauthorized", 401);
         }
@@ -175,7 +177,7 @@ export function GithubAuthProvider(props: ParentProps) {
         return (await response.text()) as T;
     };
 
-    const login = (owner: string, repo: string, returnTo = `${import.meta.env.BASE_URL}${owner}/${repo}`) => {
+    const login = async (owner: string, repo: string, returnTo = `${import.meta.env.BASE_URL}${owner}/${repo}`) => {
         if (isServer) return;
 
         const params = new URLSearchParams({
@@ -205,21 +207,30 @@ export function GithubAuthProvider(props: ParentProps) {
         }
     };
 
-    const user = createMemo<GithubUser | null>(() => {
-        const current = session();
-        return current === undefined ? (session.latest ?? null) : current;
+    /**
+     * undefined: not loaded yet
+     * null: user is not authenticated, optimistically
+     * GithubUser: user is authenticated, optimistically
+     */
+    const user = createMemo<GithubUser | null | undefined>(() => session.latest);
+
+    const authState = createMemo<GithubAuthState>(() => {
+        if (session.loading) return "unknown";
+        return user() ? "authenticated" : "unauthenticated";
     });
 
-    const status = createMemo<GithubAuthStatus>(() => {
-        if (user()) return "authenticated";
-        if (session.loading && !session.latest) return "loading";
-        return "unauthenticated";
-    });
+    // const fetchStatus = createMemo<GithubFetchStatus>(() => {
+    //     return session.state === "pending" || session.state === "refreshing" ? "fetching" : "idle";
+    // });
+
+    // const cacheStatus = createMemo<GithubCacheStatus>(() => {
+    //     if (session.latest === undefined) return "empty";
+    //     return session.state === "refreshing" ? "refreshing" : "cached";
+    // });
 
     const value: GithubAuthContextValue = {
-        // session,
         user,
-        status,
+        authState,
         api,
         login,
         logout,
