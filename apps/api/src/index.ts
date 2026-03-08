@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import type { BootstrapResponse, SaveRepoRequest, SaveRepoResponse } from "./contracts.js";
+import type { BootstrapResponse, SaveRepoRequest, SaveRepoResponse } from "./types.js";
 import {
     assertRepoAccessible,
     detectResumeFiles,
@@ -412,4 +412,4 @@ app.onError((error, c) => {
 });
 
 export default app;
-export type * from "./contracts.js";
+export type * from "./types.js";

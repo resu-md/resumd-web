@@ -1,5 +1,5 @@
 import { Octokit } from "@octokit/rest";
-import type { BranchSummary, RepoEditorResponse, RepoSummary } from "./contracts.js";
+import type { BranchSummary, RepoEditorResponse, RepoSummary } from "./types.js";
 import {
     ApiError,
     type ApiContext,
@@ -38,11 +38,7 @@ function decodeBase64Text(value: string): string {
     return textDecoder.decode(bytes);
 }
 
-async function maybeRefreshAuth(
-    runtime: RuntimeServices,
-    c: ApiContext,
-    auth: AuthCookie,
-): Promise<AuthCookie> {
+async function maybeRefreshAuth(runtime: RuntimeServices, c: ApiContext, auth: AuthCookie): Promise<AuthCookie> {
     if (!auth.expiresAt || !auth.refreshToken) {
         return auth;
     }
@@ -82,11 +78,7 @@ export async function assertRepoAccessible(octokit: Octokit, owner: string, repo
     await octokit.rest.repos.get({ owner, repo });
 }
 
-async function getInstallationIdForRepo(
-    runtime: RuntimeServices,
-    owner: string,
-    repo: string,
-): Promise<number> {
+async function getInstallationIdForRepo(runtime: RuntimeServices, owner: string, repo: string): Promise<number> {
     try {
         const { data } = await runtime.ghApp.octokit.request("GET /repos/{owner}/{repo}/installation", {
             owner,
@@ -369,7 +361,8 @@ export async function ensureTargetBranch(params: {
         throw new ApiError(404, `Target branch \"${targetBranch}\" does not exist`);
     }
 
-    const branchBase = (baseBranch && baseBranch.trim().length > 0 ? baseBranch.trim() : defaultBranch) || defaultBranch;
+    const branchBase =
+        (baseBranch && baseBranch.trim().length > 0 ? baseBranch.trim() : defaultBranch) || defaultBranch;
 
     try {
         const baseRef = await octokit.rest.git.getRef({
