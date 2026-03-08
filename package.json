@@ -1,36 +1,15 @@
 {
-    "name": "resumd-web",
+    "name": "resumd",
     "private": true,
-    "version": "0.0.0",
-    "type": "module",
+    "workspaces": [
+        "apps/*"
+    ],
     "scripts": {
-        "dev": "vite",
-        "build": "tsc -b && vite build",
-        "preview": "vite preview",
+        "dev:web": "npm run dev --workspace=@resumd/web",
+        "dev:api": "npm run dev --workspace=@resumd/api",
+        "build:web": "npm run build --workspace=@resumd/web",
+        "build:api": "npm run build --workspace=@resumd/api",
+        "build": "npm run build --workspaces --if-present",
         "format": "prettier --write ."
-    },
-    "dependencies": {
-        "@kobalte/core": "^0.13.11",
-        "@solid-primitives/storage": "^4.3.3",
-        "@solidjs/router": "^0.15.4",
-        "@tailwindcss/vite": "^4.1.17",
-        "clsx": "^2.1.1",
-        "front-matter": "^4.0.2",
-        "jszip": "^3.10.1",
-        "marked": "^17.0.1",
-        "monaco-editor": "^0.52.2",
-        "pagedjs": "^0.4.3",
-        "solid-icons": "^1.1.0",
-        "solid-js": "^1.9.10",
-        "tailwindcss": "^4.1.17",
-        "vite-plugin-static-copy": "^3.2.0"
-    },
-    "devDependencies": {
-        "@types/node": "^24.10.1",
-        "prettier": "^3.7.1",
-        "prettier-plugin-tailwindcss": "^0.7.2",
-        "typescript": "~5.9.3",
-        "vite": "^7.2.4",
-        "vite-plugin-solid": "^2.11.10"
     }
 }
