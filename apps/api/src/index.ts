@@ -172,14 +172,7 @@ app.get("/api/bootstrap", async (c) => {
 
     const auth = await readSealedCookie<AuthCookie>(c, runtime, COOKIE_AUTH);
     if (!auth?.token) {
-        const response: BootstrapResponse = {
-            authenticated: false,
-            user: null,
-            repos: [],
-            selected: null,
-        };
-
-        return c.json(response);
+        return c.body(null, 401);
     }
 
     let octokit;
@@ -188,13 +181,7 @@ app.get("/api/bootstrap", async (c) => {
     } catch (error) {
         if (statusOf(error) === 401) {
             clearCookie(c, COOKIE_AUTH);
-            const response: BootstrapResponse = {
-                authenticated: false,
-                user: null,
-                repos: [],
-                selected: null,
-            };
-            return c.json(response);
+            return c.body(null, 401);
         }
 
         throw error;
@@ -219,14 +206,7 @@ app.get("/api/bootstrap", async (c) => {
             const status = statusOf(error);
             if (status === 401) {
                 clearCookie(c, COOKIE_AUTH);
-                const response: BootstrapResponse = {
-                    authenticated: false,
-                    user: null,
-                    repos: [],
-                    selected: null,
-                };
-
-                return c.json(response);
+                return c.body(null, 401);
             }
 
             if (status !== 403 && status !== 404) {
@@ -384,6 +364,10 @@ app.notFound((c) => c.json({ error: "Not found" }, 404));
 
 app.onError((error, c) => {
     if (error instanceof ApiError) {
+        if (error.status === 401) {
+            return c.body(null, 401);
+        }
+
         return c.json(
             {
                 error: error.message,
@@ -407,6 +391,10 @@ app.onError((error, c) => {
         typeof error === "object" && error && "message" in error && typeof error.message === "string"
             ? error.message
             : "Internal error";
+
+    if (status === 401) {
+        return c.body(null, 401);
+    }
 
     return c.json({ error: message }, { status: status as any });
 });
