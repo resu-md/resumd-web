@@ -53,7 +53,7 @@ export default function PagedPdfPreview(props: { html: string; css: string; zoom
         const fitScale = Math.min(viewportWidth / pageRect.width, viewportHeight / totalPageHeight);
         if (!Number.isFinite(fitScale)) return;
 
-        const paddingFactor = 0.98;
+        const paddingFactor = 0.94;
         const fitZoom = Math.min(100, Math.floor(fitScale * paddingFactor * 100));
         if (fitZoom > 0 && fitZoom < zoom()) {
             setZoom(fitZoom);
