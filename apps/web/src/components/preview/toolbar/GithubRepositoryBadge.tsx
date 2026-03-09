@@ -8,7 +8,7 @@ export default function GithubRepositoryBadge() {
     return (
         <Show when={selectedRepository()}>
             {(repo) => (
-                <div class="proeminent-button flex h-8.5 items-center rounded-full pr-3.5 pl-2 font-mono text-sm">
+                <div class="proeminent-button flex h-8 items-center rounded-full pr-3.5 pl-2 font-mono text-sm">
                     <RiLogosGithubFill class="size-5" />
                     <span class="text-label-tertiary px-0.75">/</span>
                     <span>{repo().owner}</span>

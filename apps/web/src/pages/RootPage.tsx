@@ -78,6 +78,7 @@ function AnonymousEditor() {
                                         onDownloadZip={() => exportAsZip(html(), css(), parsedMarkdown().metadata)}
                                     />
                                     <ExportPdfButton
+                                        label="Export as PDF"
                                         onClick={() => exportAsPdf(html(), css(), parsedMarkdown().metadata)}
                                     />
                                 </>

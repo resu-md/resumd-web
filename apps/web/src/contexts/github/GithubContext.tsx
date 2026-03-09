@@ -13,7 +13,7 @@ import { useNavigate, useParams, useSearchParams } from "@solidjs/router";
 const GithubContext = createContext<{
     user: Accessor<GithubUser | null | undefined>;
     selectedRepository: Accessor<RepositoryInformation | null>;
-    branches: Accessor<BranchInformation[] | undefined>;
+    branches: Accessor<BranchInformation[]>;
     selectedBranch: Accessor<BranchInformation | null>;
     setSelectedBranch: (branch: BranchInformation) => void;
     remoteMarkdown: Accessor<string | null>;
@@ -87,7 +87,7 @@ export function GithubProvider(props: { children?: JSXElement }) {
 
     const selectedRepository = createMemo(() => bootstrapQuery.data?.selected?.repository ?? null);
 
-    const branches = createMemo(() => bootstrapQuery.data?.selected?.branches.items);
+    const branches = createMemo(() => bootstrapQuery.data?.selected?.branches.items ?? []);
     const getFallbackBranch = (branchList: BranchInformation[]) =>
         branchList.find((branch) => branch.isDefault) ?? branchList[0] ?? null;
 

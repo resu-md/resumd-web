@@ -9,8 +9,6 @@ import MonacoEditor from "@/components/editor/monaco-editor/MonacoEditor";
 import EditorShell from "@/components/editor/EditorShell";
 import ToolbarShell from "@/components/preview/toolbar/ToolbarShell";
 import ExportPdfButton from "@/components/preview/toolbar/ExportPdfButton";
-import GithubDiff from "@/components/preview/toolbar/GithubDiff";
-import GithubRepositoryBadge from "@/components/preview/toolbar/GithubRepositoryBadge";
 import GithubBranchDropdown from "@/components/preview/toolbar/GithubBranchDropdown";
 import Preview from "@/components/preview/Preview";
 import MonacoDiffEditor from "@/components/editor/monaco-editor/MonacoDiffEditor";
@@ -106,12 +104,13 @@ function AuthenticatedEditor() {
                                 <>
                                     {/* <GithubRepositoryBadge /> */}
                                     <GithubBranchDropdown />
-                                    <GithubDiff diffMode={diffMode()} onToggleDiffMode={setDiffMode} />
                                 </>
                             }
                             trailing={
                                 <>
                                     <ExportPdfButton
+                                        label="Export as PDF"
+                                        alt="Export resume as PDF"
                                         onClick={() => exportAsPdf(html(), draftCss(), parsedMarkdown().metadata)}
                                     />
                                 </>

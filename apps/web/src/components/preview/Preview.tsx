@@ -63,7 +63,7 @@ function _Preview(props: PreviewProps) {
 
             <div
                 class={clsx(
-                    "absolute right-0 bottom-5 left-0 flex items-center justify-center",
+                    "absolute right-0 bottom-3.5 left-0 flex items-center justify-center",
                     "opacity-0 transition-opacity delay-300 duration-200 group-hover:opacity-100 group-hover:delay-0",
                 )}
             >
