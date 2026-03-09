@@ -1,5 +1,5 @@
 import { Octokit } from "@octokit/rest";
-import type { BranchSummary, RepoEditorResponse, RepoSummary } from "./types.js";
+import type { BranchInformation, EditorFile, EditorFiles, FilesResponse, RepositoryInformation } from "./types.js";
 import {
     ApiError,
     type ApiContext,
@@ -12,6 +12,14 @@ import {
 } from "./runtime.js";
 
 const textDecoder = new TextDecoder();
+const GITHUB_PAGE_SIZE = 100;
+const MAX_INSTALLATIONS = 20;
+
+export type SimplePagination = {
+    page: number;
+    perPage: number;
+    hasMore: boolean;
+};
 
 function base64ToBytes(base64: string): Uint8Array {
     const bufferGlobal = globalThis as typeof globalThis & {
@@ -36,6 +44,35 @@ function base64ToBytes(base64: string): Uint8Array {
 function decodeBase64Text(value: string): string {
     const bytes = base64ToBytes(value.replace(/\n/g, ""));
     return textDecoder.decode(bytes);
+}
+
+function toRepositoryInformation(
+    repository: {
+        owner?: { login?: string | null } | null;
+        name: string;
+        full_name?: string | null;
+    },
+    installationId: number,
+): RepositoryInformation {
+    const owner = repository.owner?.login ?? repository.full_name?.split("/")[0] ?? "";
+    return {
+        owner,
+        repo: repository.name,
+        fullName: repository.full_name ?? `${owner}/${repository.name}`,
+        installationId,
+    };
+}
+
+function sortBranches(branches: BranchInformation[]): BranchInformation[] {
+    return branches.sort((left, right) => {
+        if (left.isDefault !== right.isDefault) {
+            return left.isDefault ? -1 : 1;
+        }
+
+        return left.name.localeCompare(right.name, undefined, {
+            sensitivity: "base",
+        });
+    });
 }
 
 async function maybeRefreshAuth(runtime: RuntimeServices, c: ApiContext, auth: AuthCookie): Promise<AuthCookie> {
@@ -105,13 +142,26 @@ export async function requireInstallationOctokit(
     return inst as unknown as Octokit;
 }
 
-async function getTextFile(
+export async function getRepositoryInformation(
+    runtime: RuntimeServices,
     octokit: Octokit,
     owner: string,
     repo: string,
-    path: string,
-    ref?: string,
-): Promise<{ path: string; sha: string; content: string }> {
+): Promise<RepositoryInformation> {
+    const [repoInfo, installationId] = await Promise.all([
+        octokit.rest.repos.get({ owner, repo }),
+        getInstallationIdForRepo(runtime, owner, repo),
+    ]);
+
+    return {
+        owner,
+        repo,
+        fullName: repoInfo.data.full_name ?? `${owner}/${repo}`,
+        installationId,
+    };
+}
+
+async function getTextFile(octokit: Octokit, owner: string, repo: string, path: string, ref: string): Promise<EditorFile> {
     const { data } = await octokit.rest.repos.getContent({
         owner,
         repo,
@@ -134,7 +184,7 @@ export async function detectResumeFiles(
     octokit: Octokit,
     owner: string,
     repo: string,
-    ref?: string,
+    ref: string,
 ): Promise<{ markdownPath: string | null; cssPath: string | null }> {
     try {
         const { data } = await octokit.rest.repos.getContent({
@@ -149,7 +199,6 @@ export async function detectResumeFiles(
         }
 
         const fileNames = data.filter((entry) => entry.type === "file").map((entry) => entry.name);
-
         const pick = (candidates: string[]) => candidates.find((candidate) => fileNames.includes(candidate));
 
         const markdownPath =
@@ -173,158 +222,171 @@ export async function detectResumeFiles(
     }
 }
 
-export async function listInstalledRepos(runtime: RuntimeServices, octokit: Octokit): Promise<RepoSummary[]> {
-    const installations = await octokit.rest.apps.listInstallationsForAuthenticatedUser();
+export async function listInstalledRepos(
+    runtime: RuntimeServices,
+    octokit: Octokit,
+    pagination?: { page?: number; perPage?: number },
+): Promise<{ repositories: RepositoryInformation[]; pagination: SimplePagination }> {
+    const page = pagination?.page ?? 1;
+    const perPage = pagination?.perPage ?? GITHUB_PAGE_SIZE;
 
-    const matchingInstallations = installations.data.installations.filter(
-        (installation) => installation.app_slug === runtime.env.GITHUB_APP_SLUG,
-    );
+    const installations = await octokit.rest.apps.listInstallationsForAuthenticatedUser({
+        per_page: MAX_INSTALLATIONS,
+        page: 1,
+    });
+
+    const matchingInstallations = installations.data.installations
+        .filter((installation) => installation.app_slug === runtime.env.GITHUB_APP_SLUG)
+        .slice(0, MAX_INSTALLATIONS);
 
     const repoLists = await Promise.all(
         matchingInstallations.map(async (installation) => {
-            const repos: RepoSummary[] = [];
+            const { data } = await octokit.rest.apps.listInstallationReposForAuthenticatedUser({
+                installation_id: installation.id,
+                per_page: perPage,
+                page,
+            });
 
-            for (let page = 1; ; page += 1) {
-                const { data } = await octokit.rest.apps.listInstallationReposForAuthenticatedUser({
-                    installation_id: installation.id,
-                    per_page: 100,
-                    page,
-                });
-
-                for (const repository of data.repositories) {
-                    const fullName = repository.full_name ?? `${repository.owner?.login ?? ""}/${repository.name}`;
-                    repos.push({
-                        owner: repository.owner?.login ?? fullName.split("/")[0] ?? "",
-                        repo: repository.name,
-                        fullName,
-                        installationId: installation.id,
-                        defaultBranch: repository.default_branch ?? undefined,
-                    });
-                }
-
-                if (data.repositories.length < 100) {
-                    break;
-                }
-            }
-
-            return repos;
+            return {
+                repositories: data.repositories.map((repository) =>
+                    toRepositoryInformation(repository, installation.id),
+                ),
+                hasMore: data.repositories.length === perPage,
+            };
         }),
     );
 
-    return repoLists.flat().sort((left, right) => left.fullName.localeCompare(right.fullName));
+    const byFullName = new Map<string, RepositoryInformation>();
+    for (const pageResult of repoLists) {
+        for (const repo of pageResult.repositories) {
+            if (!byFullName.has(repo.fullName)) {
+                byFullName.set(repo.fullName, repo);
+            }
+        }
+    }
+
+    return {
+        repositories: Array.from(byFullName.values()).sort((left, right) => left.fullName.localeCompare(right.fullName)),
+        pagination: {
+            page,
+            perPage,
+            hasMore: repoLists.some((result) => result.hasMore),
+        },
+    };
 }
 
-export async function listRepoBranches(
+export async function listBranchesForRepo(
     octokit: Octokit,
     owner: string,
     repo: string,
-): Promise<{ defaultBranch: string; branches: BranchSummary[] }> {
+    pagination?: { page?: number; perPage?: number },
+): Promise<{ branches: BranchInformation[]; pagination: SimplePagination }> {
+    const page = pagination?.page ?? 1;
+    const perPage = pagination?.perPage ?? GITHUB_PAGE_SIZE;
     const repoInfo = await octokit.rest.repos.get({ owner, repo });
     const defaultBranch = repoInfo.data.default_branch;
 
-    let branchData: Array<{
-        name: string;
-        commit?: {
-            sha?: string;
-        };
-    }> = [];
+    let branches: BranchInformation[] = [];
+    let hasMore = false;
 
     try {
-        branchData = (await octokit.paginate(octokit.rest.repos.listBranches, {
+        const { data } = await octokit.rest.repos.listBranches({
             owner,
             repo,
-            per_page: 100,
-        })) as Array<{
-            name: string;
-            commit?: {
-                sha?: string;
-            };
-        }>;
+            per_page: perPage,
+            page,
+        });
+
+        branches = data.map((branch) => ({
+            name: branch.name,
+            commitSha: branch.commit.sha,
+            isDefault: branch.name === defaultBranch,
+        }));
+        hasMore = data.length === perPage;
     } catch (error) {
-        const status = statusOf(error);
-        if (status !== 409) {
+        if (statusOf(error) !== 409) {
             throw error;
         }
     }
 
-    const branches: BranchSummary[] = branchData.map((branch) => ({
-        name: branch.name,
-        commitSha: branch.commit?.sha,
-        isDefault: branch.name === defaultBranch,
-    }));
-
-    if (branches.length === 0) {
-        branches.push({
-            name: defaultBranch,
-            commitSha: undefined,
-            isDefault: true,
-        });
-    }
-
-    branches.sort((left, right) => {
-        if (left.isDefault !== right.isDefault) {
-            return left.isDefault ? -1 : 1;
-        }
-
-        return left.name.localeCompare(right.name, undefined, {
-            sensitivity: "base",
-        });
-    });
-
     return {
-        defaultBranch,
-        branches,
+        branches: sortBranches(branches),
+        pagination: {
+            page,
+            perPage,
+            hasMore,
+        },
     };
 }
 
-export async function loadEditorPayload(
+export async function loadFilesResponse(
+    runtime: RuntimeServices,
     octokit: Octokit,
     owner: string,
     repo: string,
-    requestedBranch?: string,
-): Promise<RepoEditorResponse> {
-    const { defaultBranch, branches } = await listRepoBranches(octokit, owner, repo);
-    const branchName = requestedBranch && requestedBranch.length > 0 ? requestedBranch : defaultBranch;
-    const selectedBranch = branches.find((branch) => branch.name === branchName);
+    branchName: string,
+): Promise<FilesResponse> {
+    const [repoInfo, installationId] = await Promise.all([
+        octokit.rest.repos.get({ owner, repo }),
+        getInstallationIdForRepo(runtime, owner, repo),
+    ]);
 
-    if (!selectedBranch) {
-        throw new ApiError(404, `Branch \"${branchName}\" was not found`);
-    }
+    const defaultBranch = repoInfo.data.default_branch;
+    const repository: RepositoryInformation = {
+        owner,
+        repo,
+        fullName: repoInfo.data.full_name ?? `${owner}/${repo}`,
+        installationId,
+    };
 
-    const headSha = selectedBranch.commitSha ?? null;
-    if (!headSha) {
-        return {
+    let branch: BranchInformation;
+    try {
+        const ref = await octokit.rest.git.getRef({
             owner,
             repo,
-            branch: branchName,
-            defaultBranch,
-            headSha: null,
-            branches,
-            files: {
-                markdown: null,
-                css: null,
-            },
+            ref: `heads/${branchName}`,
+        });
+        branch = {
+            name: branchName,
+            commitSha: ref.data.object.sha,
+            isDefault: branchName === defaultBranch,
+        };
+    } catch (error) {
+        const status = statusOf(error);
+        if (status === 404) {
+            throw new ApiError(404, `Branch "${branchName}" was not found`);
+        }
+
+        if (status !== 409) {
+            throw error;
+        }
+
+        branch = {
+            name: branchName,
+            commitSha: undefined,
+            isDefault: branchName === defaultBranch,
         };
     }
 
-    const { markdownPath, cssPath } = await detectResumeFiles(octokit, owner, repo, branchName);
+    let files: EditorFiles = {
+        markdown: null,
+        css: null,
+    };
 
-    const [markdown, css] = await Promise.all([
-        markdownPath ? getTextFile(octokit, owner, repo, markdownPath, branchName) : Promise.resolve(null),
-        cssPath ? getTextFile(octokit, owner, repo, cssPath, branchName) : Promise.resolve(null),
-    ]);
+    if (branch.commitSha) {
+        const { markdownPath, cssPath } = await detectResumeFiles(octokit, owner, repo, branchName);
+        const [markdown, css] = await Promise.all([
+            markdownPath ? getTextFile(octokit, owner, repo, markdownPath, branchName) : Promise.resolve(null),
+            cssPath ? getTextFile(octokit, owner, repo, cssPath, branchName) : Promise.resolve(null),
+        ]);
+
+        files = { markdown, css };
+    }
 
     return {
-        owner,
-        repo,
-        branch: branchName,
-        defaultBranch,
-        headSha,
-        branches,
-        files: {
-            markdown,
-            css,
-        },
+        repository,
+        branch,
+        files,
     };
 }
 
@@ -358,7 +420,7 @@ export async function ensureTargetBranch(params: {
     }
 
     if (!createBranchIfMissing) {
-        throw new ApiError(404, `Target branch \"${targetBranch}\" does not exist`);
+        throw new ApiError(404, `Target branch "${targetBranch}" does not exist`);
     }
 
     const branchBase =
@@ -406,7 +468,7 @@ export async function ensureTargetBranch(params: {
     }
 
     if (baseBranch) {
-        throw new ApiError(404, `Base branch \"${baseBranch}\" does not exist`);
+        throw new ApiError(404, `Base branch "${baseBranch}" does not exist`);
     }
 
     let hasBranches = false;
@@ -415,6 +477,7 @@ export async function ensureTargetBranch(params: {
             owner,
             repo,
             per_page: 1,
+            page: 1,
         });
         hasBranches = existingBranches.data.length > 0;
     } catch (error) {
@@ -424,7 +487,7 @@ export async function ensureTargetBranch(params: {
     }
 
     if (hasBranches) {
-        throw new ApiError(404, `Base branch \"${branchBase}\" does not exist`);
+        throw new ApiError(404, `Base branch "${branchBase}" does not exist`);
     }
 
     const tree = await octokit.rest.git.createTree({

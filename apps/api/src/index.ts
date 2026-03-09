@@ -1,12 +1,13 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import type { BootstrapResponse, SaveRepoRequest, SaveRepoResponse } from "./types.js";
+import type { BootstrapResponse, BranchesResponse, SaveRepoRequest, SaveRepoResponse } from "./types.js";
 import {
     assertRepoAccessible,
-    detectResumeFiles,
     ensureTargetBranch,
+    getRepositoryInformation,
+    listBranchesForRepo,
     listInstalledRepos,
-    loadEditorPayload,
+    loadFilesResponse,
     requireInstallationOctokit,
     requireUserOctokit,
 } from "./github.js";
@@ -39,10 +40,46 @@ const SaveRepoRequestSchema: z.ZodType<SaveRepoRequest> = z.object({
     files: z.object({
         markdown: z.string(),
         css: z.string(),
-        markdownPath: z.string().trim().min(1).optional(),
-        cssPath: z.string().trim().min(1).optional(),
+        markdownPath: z.string().trim().min(1),
+        cssPath: z.string().trim().min(1),
     }),
 });
+
+const DEFAULT_PAGE = 1;
+const DEFAULT_PER_PAGE = 100;
+const MAX_PER_PAGE = 100;
+
+function requireQueryParam(c: ApiContext, key: string): string {
+    const value = c.req.query(key)?.trim() ?? "";
+    if (!value) {
+        throw new ApiError(400, `${key} is required`);
+    }
+
+    return value;
+}
+
+function parseOptionalPositiveIntQuery(
+    c: ApiContext,
+    key: string,
+    defaultValue: number,
+    maxValue: number,
+): number {
+    const rawValue = c.req.query(key)?.trim();
+    if (!rawValue) {
+        return defaultValue;
+    }
+
+    const parsed = Number.parseInt(rawValue, 10);
+    if (!Number.isInteger(parsed) || parsed < 1) {
+        throw new ApiError(400, `${key} must be a positive integer`);
+    }
+
+    if (parsed > maxValue) {
+        throw new ApiError(400, `${key} must be <= ${maxValue}`);
+    }
+
+    return parsed;
+}
 
 async function parseJsonBody<T>(c: ApiContext, schema: z.ZodType<T>): Promise<T> {
     let body: unknown;
@@ -169,6 +206,12 @@ app.post("/api/auth/logout", async (c) => {
 
 app.get("/api/bootstrap", async (c) => {
     const runtime = getRuntime(c);
+    const owner = c.req.query("owner")?.trim() ?? "";
+    const repo = c.req.query("repo")?.trim() ?? "";
+    const repositoriesPage = parseOptionalPositiveIntQuery(c, "repositoriesPage", DEFAULT_PAGE, Number.MAX_SAFE_INTEGER);
+    const repositoriesPerPage = parseOptionalPositiveIntQuery(c, "repositoriesPerPage", DEFAULT_PER_PAGE, MAX_PER_PAGE);
+    const branchesPage = parseOptionalPositiveIntQuery(c, "branchesPage", DEFAULT_PAGE, Number.MAX_SAFE_INTEGER);
+    const branchesPerPage = parseOptionalPositiveIntQuery(c, "branchesPerPage", DEFAULT_PER_PAGE, MAX_PER_PAGE);
 
     const auth = await readSealedCookie<AuthCookie>(c, runtime, COOKIE_AUTH);
     if (!auth?.token) {
@@ -187,21 +230,33 @@ app.get("/api/bootstrap", async (c) => {
         throw error;
     }
 
-    const ctxCookie = await readSealedCookie<AuthFlowContextCookie>(c, runtime, COOKIE_CTX);
-    const owner = c.req.query("owner")?.trim() || ctxCookie?.owner || "";
-    const repo = c.req.query("repo")?.trim() || ctxCookie?.repo || "";
-    const branch = c.req.query("branch")?.trim() || undefined;
-
-    const [me, repos] = await Promise.all([
+    const [me, reposResult] = await Promise.all([
         octokit.rest.users.getAuthenticated(),
-        listInstalledRepos(runtime, octokit),
+        listInstalledRepos(runtime, octokit, {
+            page: repositoriesPage,
+            perPage: repositoriesPerPage,
+        }),
     ]);
+    const repos = reposResult.repositories;
 
-    let selected = null;
+    let selected: BootstrapResponse["selected"] = null;
     if (owner && repo) {
         try {
-            await assertRepoAccessible(octokit, owner, repo);
-            selected = await loadEditorPayload(octokit, owner, repo, branch);
+            const selectedRepository =
+                repos.find((entry) => entry.owner === owner && entry.repo === repo) ??
+                (await getRepositoryInformation(runtime, octokit, owner, repo));
+            const branchesResult = await listBranchesForRepo(octokit, owner, repo, {
+                page: branchesPage,
+                perPage: branchesPerPage,
+            });
+
+            selected = {
+                repository: selectedRepository,
+                branches: {
+                    items: branchesResult.branches,
+                    pageInfo: branchesResult.pagination,
+                },
+            };
         } catch (error) {
             const status = statusOf(error);
             if (status === 401) {
@@ -209,42 +264,61 @@ app.get("/api/bootstrap", async (c) => {
                 return c.body(null, 401);
             }
 
-            if (status !== 403 && status !== 404) {
+            if (status !== 403 && status !== 404 && status !== 409) {
                 throw error;
             }
         }
     }
 
     const response: BootstrapResponse = {
-        authenticated: true,
         user: {
             username: me.data.login,
             avatarUrl: me.data.avatar_url,
         },
-        repos,
+        repositories: {
+            items: repos,
+            pageInfo: reposResult.pagination,
+        },
         selected,
     };
 
     return c.json(response);
 });
 
-app.get("/api/repo/:owner/:repo/editor", async (c) => {
+app.get("/api/branches", async (c) => {
     const runtime = getRuntime(c);
-    const owner = c.req.param("owner");
-    const repo = c.req.param("repo");
-    const branch = c.req.query("branch")?.trim() || undefined;
+    const owner = requireQueryParam(c, "owner");
+    const repo = requireQueryParam(c, "repo");
+    const page = parseOptionalPositiveIntQuery(c, "page", DEFAULT_PAGE, Number.MAX_SAFE_INTEGER);
+    const perPage = parseOptionalPositiveIntQuery(c, "perPage", DEFAULT_PER_PAGE, MAX_PER_PAGE);
 
     const octokit = await requireUserOctokit(c, runtime);
-    await assertRepoAccessible(octokit, owner, repo);
+    const branchesResult = await listBranchesForRepo(octokit, owner, repo, { page, perPage });
 
-    const payload = await loadEditorPayload(octokit, owner, repo, branch);
-    return c.json(payload);
+    const response: BranchesResponse = {
+        branches: {
+            items: branchesResult.branches,
+            pageInfo: branchesResult.pagination,
+        },
+    };
+    return c.json(response);
 });
 
-app.post("/api/repo/:owner/:repo/save", async (c) => {
+app.get("/api/files", async (c) => {
     const runtime = getRuntime(c);
-    const owner = c.req.param("owner");
-    const repo = c.req.param("repo");
+    const owner = requireQueryParam(c, "owner");
+    const repo = requireQueryParam(c, "repo");
+    const branch = ensureBranchName(requireQueryParam(c, "branch"), "branch");
+
+    const octokit = await requireUserOctokit(c, runtime);
+    const response = await loadFilesResponse(runtime, octokit, owner, repo, branch);
+    return c.json(response);
+});
+
+app.post("/api/save", async (c) => {
+    const runtime = getRuntime(c);
+    const owner = requireQueryParam(c, "owner");
+    const repo = requireQueryParam(c, "repo");
 
     const body = await parseJsonBody(c, SaveRepoRequestSchema);
     const targetBranch = ensureBranchName(body.targetBranch, "targetBranch");
@@ -277,9 +351,8 @@ app.post("/api/repo/:owner/:repo/save", async (c) => {
         );
     }
 
-    const detectedFiles = await detectResumeFiles(botOctokit, owner, repo, targetBranch);
-    const markdownPath = body.files.markdownPath ?? detectedFiles.markdownPath ?? "resume.md";
-    const cssPath = body.files.cssPath ?? detectedFiles.cssPath ?? "style.css";
+    const markdownPath = body.files.markdownPath;
+    const cssPath = body.files.cssPath;
 
     const [markdownBlob, cssBlob, currentCommit] = await Promise.all([
         botOctokit.rest.git.createBlob({
