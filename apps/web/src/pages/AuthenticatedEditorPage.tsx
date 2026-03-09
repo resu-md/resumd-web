@@ -1,8 +1,8 @@
-import { Show, createEffect, createSignal, on } from "solid-js";
+import { Show, createEffect, createSignal } from "solid-js";
 import { useParams } from "@solidjs/router";
 import { exportAsPdf } from "@/lib/export-as-pdf";
 // Contexts
-import { GithubProvider, login, useGithub } from "@/contexts/github/GithubContext";
+import { login, useGithub } from "@/contexts/github/GithubContext";
 import { GithubResumeProvider, useGithubResume } from "@/contexts/github/GithubResumeContext";
 // Components
 import MonacoEditor from "@/components/editor/monaco-editor/MonacoEditor";
@@ -10,7 +10,8 @@ import EditorShell from "@/components/editor/EditorShell";
 import ToolbarShell from "@/components/preview/toolbar/ToolbarShell";
 import ExportPdfButton from "@/components/preview/toolbar/ExportPdfButton";
 import GithubDiff from "@/components/preview/toolbar/GithubDiff";
-import GithubDropdown from "@/components/preview/toolbar/GithubDropdown";
+import GithubRepositoryBadge from "@/components/preview/toolbar/GithubRepositoryBadge";
+import GithubBranchDropdown from "@/components/preview/toolbar/GithubBranchDropdown";
 import Preview from "@/components/preview/Preview";
 import MonacoDiffEditor from "@/components/editor/monaco-editor/MonacoDiffEditor";
 
@@ -21,7 +22,7 @@ export default function AuthenticatedEditorPage() {
 
     createEffect(() => {
         if (user() === null) {
-            login(params.owner, params.repo, window.location.pathname);
+            login(params.owner, params.repo, `${window.location.pathname}${window.location.search}`);
         }
     });
 
@@ -103,7 +104,8 @@ function AuthenticatedEditor() {
                         <ToolbarShell
                             leading={
                                 <>
-                                    <GithubDropdown />
+                                    {/* <GithubRepositoryBadge /> */}
+                                    <GithubBranchDropdown />
                                     <GithubDiff diffMode={diffMode()} onToggleDiffMode={setDiffMode} />
                                 </>
                             }

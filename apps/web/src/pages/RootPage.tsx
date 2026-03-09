@@ -1,4 +1,5 @@
-import { Show } from "solid-js";
+import { Show, createEffect } from "solid-js";
+import { useNavigate } from "@solidjs/router";
 import { exportAsPdf } from "@/lib/export-as-pdf";
 import { exportAsZip } from "@/lib/export-as-zip";
 // Contexts
@@ -15,17 +16,21 @@ import { useGithub } from "@/contexts/github/GithubContext";
 // TODO: Maybe rename? (AnonymousEditorPage?)
 export default function RootPage() {
     const { user } = useGithub();
+    const navigate = useNavigate();
+
+    createEffect(() => {
+        if (user()) {
+            navigate("/manage", { replace: true });
+        }
+    });
 
     return (
         <Show
             when={user() === undefined || user() === null}
             fallback={
-                // GithubRepositoryProvider handles correcting the URL to a /:owner/:repo URL, them redirecting to AuthenticatedEditorPage
-                // <GithubRepositoryProvider>
                 <div class="text-label-secondary flex h-dvh w-dvw items-center justify-center gap-2">
-                    Logged in successfully.
+                    Redirecting...
                 </div>
-                // </GithubRepositoryProvider>
             }
         >
             {/* User is loading (undefined) or is logged out (null) */}

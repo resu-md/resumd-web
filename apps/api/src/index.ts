@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import type { BootstrapResponse, BranchesResponse, SaveRepoRequest, SaveRepoResponse } from "./types.js";
+import type { BootstrapResponse, RepositoriesResponse, SaveRepoRequest, SaveRepoResponse } from "./types.js";
 import {
     assertRepoAccessible,
     ensureTargetBranch,
@@ -58,12 +58,7 @@ function requireQueryParam(c: ApiContext, key: string): string {
     return value;
 }
 
-function parseOptionalPositiveIntQuery(
-    c: ApiContext,
-    key: string,
-    defaultValue: number,
-    maxValue: number,
-): number {
+function parseOptionalPositiveIntQuery(c: ApiContext, key: string, defaultValue: number, maxValue: number): number {
     const rawValue = c.req.query(key)?.trim();
     if (!rawValue) {
         return defaultValue;
@@ -126,7 +121,7 @@ app.get("/api/auth/start", async (c) => {
 
     try {
         const userOctokit = await requireUserOctokit(c, runtime);
-        await assertRepoAccessible(userOctokit, owner, repo);
+        await userOctokit.rest.users.getAuthenticated();
         return c.redirect(`${runtime.env.APP_ORIGIN}${returnTo}`, 302);
     } catch (error) {
         const status = statusOf(error);
@@ -137,21 +132,7 @@ app.get("/api/auth/start", async (c) => {
             return c.redirect(url, 302);
         }
 
-        if (status === 404) {
-            return c.redirect(runtime.githubInstallationUrl, 302);
-        }
-
-        if (status === 403) {
-            return c.json(
-                {
-                    error: "Access denied. Check GitHub App permissions/installation.",
-                    hint: "Ensure the GitHub App has Contents: Read & write and is installed for this repository.",
-                },
-                403,
-            );
-        }
-
-        throw error;
+        return c.redirect(`${runtime.env.APP_ORIGIN}${returnTo}`, 302);
     }
 });
 
@@ -204,14 +185,15 @@ app.post("/api/auth/logout", async (c) => {
     return c.json({ ok: true });
 });
 
+app.get("/api/auth/manage", async (c) => {
+    const runtime = getRuntime(c);
+    return c.redirect(runtime.githubInstallationUrl, 302);
+});
+
 app.get("/api/bootstrap", async (c) => {
     const runtime = getRuntime(c);
     const owner = c.req.query("owner")?.trim() ?? "";
     const repo = c.req.query("repo")?.trim() ?? "";
-    const repositoriesPage = parseOptionalPositiveIntQuery(c, "repositoriesPage", DEFAULT_PAGE, Number.MAX_SAFE_INTEGER);
-    const repositoriesPerPage = parseOptionalPositiveIntQuery(c, "repositoriesPerPage", DEFAULT_PER_PAGE, MAX_PER_PAGE);
-    const branchesPage = parseOptionalPositiveIntQuery(c, "branchesPage", DEFAULT_PAGE, Number.MAX_SAFE_INTEGER);
-    const branchesPerPage = parseOptionalPositiveIntQuery(c, "branchesPerPage", DEFAULT_PER_PAGE, MAX_PER_PAGE);
 
     const auth = await readSealedCookie<AuthCookie>(c, runtime, COOKIE_AUTH);
     if (!auth?.token) {
@@ -230,24 +212,15 @@ app.get("/api/bootstrap", async (c) => {
         throw error;
     }
 
-    const [me, reposResult] = await Promise.all([
-        octokit.rest.users.getAuthenticated(),
-        listInstalledRepos(runtime, octokit, {
-            page: repositoriesPage,
-            perPage: repositoriesPerPage,
-        }),
-    ]);
-    const repos = reposResult.repositories;
+    const me = await octokit.rest.users.getAuthenticated();
 
     let selected: BootstrapResponse["selected"] = null;
     if (owner && repo) {
         try {
-            const selectedRepository =
-                repos.find((entry) => entry.owner === owner && entry.repo === repo) ??
-                (await getRepositoryInformation(runtime, octokit, owner, repo));
+            const selectedRepository = await getRepositoryInformation(runtime, octokit, owner, repo);
             const branchesResult = await listBranchesForRepo(octokit, owner, repo, {
-                page: branchesPage,
-                perPage: branchesPerPage,
+                page: DEFAULT_PAGE,
+                perPage: DEFAULT_PER_PAGE,
             });
 
             selected = {
@@ -264,9 +237,7 @@ app.get("/api/bootstrap", async (c) => {
                 return c.body(null, 401);
             }
 
-            if (status !== 403 && status !== 404 && status !== 409) {
-                throw error;
-            }
+            throw error;
         }
     }
 
@@ -275,33 +246,46 @@ app.get("/api/bootstrap", async (c) => {
             username: me.data.login,
             avatarUrl: me.data.avatar_url,
         },
-        repositories: {
-            items: repos,
-            pageInfo: reposResult.pagination,
-        },
         selected,
     };
 
     return c.json(response);
 });
 
-app.get("/api/branches", async (c) => {
+app.get("/api/repositories", async (c) => {
     const runtime = getRuntime(c);
-    const owner = requireQueryParam(c, "owner");
-    const repo = requireQueryParam(c, "repo");
     const page = parseOptionalPositiveIntQuery(c, "page", DEFAULT_PAGE, Number.MAX_SAFE_INTEGER);
     const perPage = parseOptionalPositiveIntQuery(c, "perPage", DEFAULT_PER_PAGE, MAX_PER_PAGE);
 
-    const octokit = await requireUserOctokit(c, runtime);
-    const branchesResult = await listBranchesForRepo(octokit, owner, repo, { page, perPage });
+    let octokit;
+    try {
+        octokit = await requireUserOctokit(c, runtime);
+    } catch (error) {
+        if (statusOf(error) === 401) {
+            clearCookie(c, COOKIE_AUTH);
+            return c.body(null, 401);
+        }
 
-    const response: BranchesResponse = {
-        branches: {
-            items: branchesResult.branches,
-            pageInfo: branchesResult.pagination,
-        },
-    };
-    return c.json(response);
+        throw error;
+    }
+
+    try {
+        const repositoriesResult = await listInstalledRepos(runtime, octokit, { page, perPage });
+        const response: RepositoriesResponse = {
+            repositories: {
+                items: repositoriesResult.repositories,
+                pageInfo: repositoriesResult.pagination,
+            },
+        };
+        return c.json(response);
+    } catch (error) {
+        if (statusOf(error) === 401) {
+            clearCookie(c, COOKIE_AUTH);
+            return c.body(null, 401);
+        }
+
+        throw error;
+    }
 });
 
 app.get("/api/files", async (c) => {

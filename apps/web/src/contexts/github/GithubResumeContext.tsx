@@ -1,7 +1,5 @@
-import { createContext, createMemo, createSignal, Show, useContext, type Accessor, type JSXElement } from "solid-js";
+import { createContext, createMemo, useContext, type Accessor, type JSXElement } from "solid-js";
 import { useGithub } from "./GithubContext";
-import { makePersisted, storageSync } from "@solid-primitives/storage";
-import type { BranchInformation, RepositoryInformation } from "@resumd/api/types";
 import { GITHUB_WORKSPACE_STORAGE_KEYS } from "@/lib/storage-keys";
 import { createKeyedLocalStorageSignal } from "../../lib/createKeyedLocalStorageSignal";
 
@@ -31,12 +29,12 @@ export function GithubResumeProvider(props: { children?: JSXElement }) {
         return GITHUB_WORKSPACE_STORAGE_KEYS.CSS(repo.fullName, branch.name);
     });
 
-    const [markdown, setMarkdown, clearMarkdownDraft] = createKeyedLocalStorageSignal({
+    const [markdown, setMarkdown] = createKeyedLocalStorageSignal({
         key: markdownKey,
         fallback: () => remoteMarkdown() ?? "",
     });
 
-    const [css, setCss, clearCssDraft] = createKeyedLocalStorageSignal({
+    const [css, setCss] = createKeyedLocalStorageSignal({
         key: cssKey,
         fallback: () => remoteCss() ?? "",
     });

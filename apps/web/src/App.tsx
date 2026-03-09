@@ -6,6 +6,7 @@ import { QueryClientProvider } from "@tanstack/solid-query";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 // Pages
 import AuthenticatedEditorPage from "./pages/AuthenticatedEditorPage";
+import ManageRepositoriesPage from "./pages/ManageRepositoriesPage";
 import RootPage from "./pages/RootPage";
 import { GithubProvider } from "./contexts/github/GithubContext";
 
@@ -16,6 +17,7 @@ export default function App() {
         <Router base={routerBase} root={ContextProviders}>
             <Route component={GithubProvider}>
                 <Route path="/" component={RootPage} />
+                <Route path="/manage" component={ManageRepositoriesPage} />
                 <Route path="/:owner/:repo" component={AuthenticatedEditorPage} />
             </Route>
         </Router>

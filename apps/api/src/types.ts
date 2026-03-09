@@ -49,24 +49,20 @@ export type EditorFiles = {
  */
 
 /**
- * GET `/api/bootstrap?owner=...&repo=...&branch=...`
- * Branch is optional.
- * If repository is not found, selected will be null.
- * If repository has no branches, selected_branch will be null.
- * If branch is not provided a fallback branch will be used. If branch is provided but not found, selected_branch will be null.
+ * GET `/api/bootstrap?owner=...&repo=...`
+ * If owner/repo are omitted, selected is null and only user/session information is returned.
  */
 export type BootstrapResponse = {
     user: GithubUser;
-    repositories: PaginatedCollection<RepositoryInformation>;
     selected: {
         repository: RepositoryInformation;
         branches: PaginatedCollection<BranchInformation>;
     } | null;
 };
 
-// GET `/api/branches?owner=...&repo=...`
-export type BranchesResponse = {
-    branches: PaginatedCollection<BranchInformation>;
+// GET `/api/repositories`
+export type RepositoriesResponse = {
+    repositories: PaginatedCollection<RepositoryInformation>;
 };
 
 // GET `/api/files?owner=...&repo=...&branch=...`
