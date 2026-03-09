@@ -28,7 +28,8 @@
         /* Path alises */
         "baseUrl": ".",
         "paths": {
-            "@/*": ["./src/*"]
+            "@/*": ["./src/*"],
+            "@resumd/api/types": ["../api/src/types.ts"]
         }
     },
     "include": ["src", "templates"]

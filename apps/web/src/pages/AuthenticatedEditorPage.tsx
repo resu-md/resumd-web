@@ -2,9 +2,8 @@ import { Show, createEffect, createSignal, on } from "solid-js";
 import { useParams } from "@solidjs/router";
 import { exportAsPdf } from "@/lib/export-as-pdf";
 // Contexts
-import { useGithubAuth } from "@/contexts/github/GithubAuthContext";
-import { AnonymousResumeProvider, useAnonymousResume } from "@/contexts/AnonymousResumeContext";
-import { GithubRepositoryProvider } from "@/contexts/github/GithubRepositoryContext";
+import { GithubProvider, login, useGithub } from "@/contexts/github/GithubContext";
+import { GithubResumeProvider, useGithubResume } from "@/contexts/github/GithubResumeContext";
 // Components
 import MonacoEditor from "@/components/editor/monaco-editor/MonacoEditor";
 import EditorShell from "@/components/editor/EditorShell";
@@ -13,19 +12,18 @@ import ExportPdfButton from "@/components/preview/toolbar/ExportPdfButton";
 import GithubDiff from "@/components/preview/toolbar/GithubDiff";
 import GithubDropdown from "@/components/preview/toolbar/GithubDropdown";
 import Preview from "@/components/preview/Preview";
+import MonacoDiffEditor from "@/components/editor/monaco-editor/MonacoDiffEditor";
 
 export default function AuthenticatedEditorPage() {
     const params = useParams<{ owner: string; repo: string }>();
-    const { user, authState, login } = useGithubAuth();
+    // const { user, authState, login } = useGithubAuth();
+    const { user } = useGithub();
 
-    createEffect(
-        on(authState, (state, prev) => {
-            // `prev !== "authenticated"` check used to prevent logout triggers login loop (since this component may take some time to unmount)
-            if (state === "unauthenticated" && prev !== "authenticated") {
-                login(params.owner, params.repo);
-            }
-        }),
-    );
+    createEffect(() => {
+        if (user() === null) {
+            login(params.owner, params.repo, window.location.pathname);
+        }
+    });
 
     return (
         <Show
@@ -37,45 +35,70 @@ export default function AuthenticatedEditorPage() {
                 </main>
             }
         >
-            <GithubRepositoryProvider>
-                <AnonymousResumeProvider>
-                    <AuthenticatedEditor />
-                </AnonymousResumeProvider>
-            </GithubRepositoryProvider>
+            <GithubResumeProvider>
+                <AuthenticatedEditor />
+            </GithubResumeProvider>
         </Show>
     );
 }
 
 function AuthenticatedEditor() {
     const [diffMode, setDiffMode] = createSignal(false);
-    const { markdown, css, setMarkdown, setCss } = useAnonymousResume();
+    const { remoteMarkdown, remoteCss } = useGithub();
+    const {
+        markdown: draftMarkdown,
+        css: draftCss,
+        setMarkdown: setDraftMarkdown,
+        setCss: setDraftCss,
+    } = useGithubResume();
 
     return (
         <main class="bg-system-secondary flex h-dvh w-dvw">
             <EditorShell tabs={["resume.md", "theme.css"]}>
-                {(activeTab) => (
-                    <MonacoEditor
-                        class="size-full"
-                        activeTabId={activeTab()}
-                        tabs={[
-                            {
-                                id: "resume.md",
-                                language: "markdown",
-                                value: markdown(),
-                                onChange: setMarkdown,
-                            },
-                            {
-                                id: "theme.css",
-                                language: "css",
-                                value: css(),
-                                onChange: setCss,
-                            },
-                        ]}
-                    />
-                )}
+                {(activeTab) =>
+                    !diffMode() ? (
+                        <MonacoEditor
+                            class="size-full"
+                            activeTabId={activeTab()}
+                            tabs={[
+                                {
+                                    id: "resume.md",
+                                    language: "markdown",
+                                    value: draftMarkdown(),
+                                    onChange: setDraftMarkdown,
+                                },
+                                {
+                                    id: "theme.css",
+                                    language: "css",
+                                    value: draftCss(),
+                                    onChange: setDraftCss,
+                                },
+                            ]}
+                        />
+                    ) : (
+                        <MonacoDiffEditor
+                            class="size-full"
+                            activeTabId={activeTab()}
+                            tabs={[
+                                {
+                                    id: "resume.md",
+                                    language: "markdown",
+                                    originalValue: remoteMarkdown() ?? "",
+                                    modifiedValue: draftMarkdown(),
+                                },
+                                {
+                                    id: "theme.css",
+                                    language: "css",
+                                    originalValue: remoteCss() ?? "",
+                                    modifiedValue: draftCss(),
+                                },
+                            ]}
+                        />
+                    )
+                }
             </EditorShell>
             <div class="relative flex-1">
-                <Preview markdown={markdown} css={css}>
+                <Preview markdown={draftMarkdown} css={draftCss}>
                     {(parsedMarkdown, html) => (
                         <ToolbarShell
                             leading={
@@ -87,7 +110,7 @@ function AuthenticatedEditor() {
                             trailing={
                                 <>
                                     <ExportPdfButton
-                                        onClick={() => exportAsPdf(html(), css(), parsedMarkdown().metadata)}
+                                        onClick={() => exportAsPdf(html(), draftCss(), parsedMarkdown().metadata)}
                                     />
                                 </>
                             }
