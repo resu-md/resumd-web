@@ -1,6 +1,8 @@
-import { Show, createEffect, createSignal } from "solid-js";
+import { Show, createEffect, createMemo, createSignal } from "solid-js";
 import { useParams } from "@solidjs/router";
+import { Title } from "@solidjs/meta";
 import { exportAsPdf } from "@/lib/export-as-pdf";
+import { formatDocumentTitle } from "@/lib/document-title";
 // Contexts
 import { login, useGithub } from "@/contexts/github/GithubContext";
 import { GithubResumeProvider, useGithubResume } from "@/contexts/github/GithubResumeContext";
@@ -15,7 +17,6 @@ import MonacoDiffEditor from "@/components/editor/monaco-editor/MonacoDiffEditor
 
 export default function AuthenticatedEditorPage() {
     const params = useParams<{ owner: string; repo: string }>();
-    // const { user, authState, login } = useGithubAuth();
     const { user } = useGithub();
 
     createEffect(() => {
@@ -42,8 +43,9 @@ export default function AuthenticatedEditorPage() {
 }
 
 function AuthenticatedEditor() {
-    const [diffMode, setDiffMode] = createSignal(false);
-    const { remoteMarkdown, remoteCss } = useGithub();
+    const [diffMode] = createSignal(false);
+    const params = useParams<{ owner: string; repo: string }>();
+    const { remoteMarkdown, remoteCss, selectedRepository, selectedBranch } = useGithub();
     const {
         markdown: draftMarkdown,
         css: draftCss,
@@ -51,74 +53,86 @@ function AuthenticatedEditor() {
         setCss: setDraftCss,
     } = useGithubResume();
 
+    const title = createMemo(() => {
+        const repository = selectedRepository();
+        const branch = selectedBranch();
+        const routeRepository = [params.owner, params.repo].filter(Boolean).join("/");
+        const repositoryLabel = repository?.fullName ?? (routeRepository || "Repository");
+        const workspaceLabel = branch ? `${branch.name} · ${repositoryLabel}` : repositoryLabel;
+        return formatDocumentTitle(workspaceLabel);
+    });
+
     return (
-        <main class="bg-system-secondary flex h-dvh w-dvw">
-            <EditorShell tabs={["resume.md", "theme.css"]}>
-                {(activeTab) =>
-                    !diffMode() ? (
-                        <MonacoEditor
-                            class="size-full"
-                            activeTabId={activeTab()}
-                            tabs={[
-                                {
-                                    id: "resume.md",
-                                    language: "markdown",
-                                    value: draftMarkdown(),
-                                    onChange: setDraftMarkdown,
-                                },
-                                {
-                                    id: "theme.css",
-                                    language: "css",
-                                    value: draftCss(),
-                                    onChange: setDraftCss,
-                                },
-                            ]}
-                        />
-                    ) : (
-                        <MonacoDiffEditor
-                            class="size-full"
-                            activeTabId={activeTab()}
-                            tabs={[
-                                {
-                                    id: "resume.md",
-                                    language: "markdown",
-                                    originalValue: remoteMarkdown() ?? "",
-                                    modifiedValue: draftMarkdown(),
-                                },
-                                {
-                                    id: "theme.css",
-                                    language: "css",
-                                    originalValue: remoteCss() ?? "",
-                                    modifiedValue: draftCss(),
-                                },
-                            ]}
-                        />
-                    )
-                }
-            </EditorShell>
-            <div class="relative flex-1">
-                <Preview markdown={draftMarkdown} css={draftCss}>
-                    {(parsedMarkdown, html) => (
-                        <ToolbarShell
-                            leading={
-                                <>
-                                    {/* <GithubRepositoryBadge /> */}
-                                    <GithubBranchDropdown />
-                                </>
-                            }
-                            trailing={
-                                <>
-                                    <ExportPdfButton
-                                        label="Export as PDF"
-                                        alt="Export resume as PDF"
-                                        onClick={() => exportAsPdf(html(), draftCss(), parsedMarkdown().metadata)}
-                                    />
-                                </>
-                            }
-                        />
-                    )}
-                </Preview>
-            </div>
-        </main>
+        <>
+            <Title>{title()}</Title>
+            <main class="bg-system-secondary flex h-dvh w-dvw">
+                <EditorShell tabs={["resume.md", "theme.css"]}>
+                    {(activeTab) =>
+                        !diffMode() ? (
+                            <MonacoEditor
+                                class="size-full"
+                                activeTabId={activeTab()}
+                                tabs={[
+                                    {
+                                        id: "resume.md",
+                                        language: "markdown",
+                                        value: draftMarkdown(),
+                                        onChange: setDraftMarkdown,
+                                    },
+                                    {
+                                        id: "theme.css",
+                                        language: "css",
+                                        value: draftCss(),
+                                        onChange: setDraftCss,
+                                    },
+                                ]}
+                            />
+                        ) : (
+                            <MonacoDiffEditor
+                                class="size-full"
+                                activeTabId={activeTab()}
+                                tabs={[
+                                    {
+                                        id: "resume.md",
+                                        language: "markdown",
+                                        originalValue: remoteMarkdown() ?? "",
+                                        modifiedValue: draftMarkdown(),
+                                    },
+                                    {
+                                        id: "theme.css",
+                                        language: "css",
+                                        originalValue: remoteCss() ?? "",
+                                        modifiedValue: draftCss(),
+                                    },
+                                ]}
+                            />
+                        )
+                    }
+                </EditorShell>
+                <div class="relative flex-1">
+                    <Preview markdown={draftMarkdown} css={draftCss}>
+                        {(parsedMarkdown, html) => (
+                            <ToolbarShell
+                                leading={
+                                    <>
+                                        {/* <GithubRepositoryBadge /> */}
+                                        <GithubBranchDropdown />
+                                    </>
+                                }
+                                trailing={
+                                    <>
+                                        <ExportPdfButton
+                                            label="Export as PDF"
+                                            alt="Export resume as PDF"
+                                            onClick={() => exportAsPdf(html(), draftCss(), parsedMarkdown().metadata)}
+                                        />
+                                    </>
+                                }
+                            />
+                        )}
+                    </Preview>
+                </div>
+            </main>
+        </>
     );
 }

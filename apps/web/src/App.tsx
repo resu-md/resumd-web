@@ -1,5 +1,6 @@
 import { type JSXElement } from "solid-js";
 import { Route, Router } from "@solidjs/router";
+import { Meta, MetaProvider, Title } from "@solidjs/meta";
 // Context
 import queryClient from "./lib/query-client";
 import { QueryClientProvider } from "@tanstack/solid-query";
@@ -14,13 +15,21 @@ export default function App() {
     const routerBase = import.meta.env.BASE_URL === "/" ? "/" : import.meta.env.BASE_URL.replace(/\/+$/, ""); // TODO: Check if needed
 
     return (
-        <Router base={routerBase} root={ContextProviders}>
-            <Route component={GithubProvider}>
-                <Route path="/" component={RootPage} />
-                <Route path="/manage" component={ManageRepositoriesPage} />
-                <Route path="/:owner/:repo" component={AuthenticatedEditorPage} />
-            </Route>
-        </Router>
+        <MetaProvider>
+            <Title>Resumd</Title>
+            <Meta
+                name="description"
+                content="Markdown-based resume editor. Create resumes with Markdown, styled with CSS, and manage their versions in Github."
+            />
+
+            <Router base={routerBase} root={ContextProviders}>
+                <Route component={GithubProvider}>
+                    <Route path="/" component={RootPage} />
+                    <Route path="/manage" component={ManageRepositoriesPage} />
+                    <Route path="/:owner/:repo" component={AuthenticatedEditorPage} />
+                </Route>
+            </Router>
+        </MetaProvider>
     );
 }
 
