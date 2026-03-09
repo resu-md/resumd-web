@@ -16,8 +16,8 @@ export default function GithubBranchDropdown() {
         <Show when={selectedRepository() !== null}>
             <DropdownMenu placement="bottom-start" gutter={8}>
                 <DropdownMenu.Trigger class="proeminent-button text-primary flex h-8 items-center gap-2 rounded-full text-sm">
-                    <span class="ml-3 flex items-center gap-1.5">
-                        <FiGitBranch class="text-green" />
+                    <span class="ml-3 flex items-center">
+                        <FiGitBranch class="text-label-secondary mr-1.25" />
                         <Show
                             when={branches()?.length > 0}
                             fallback={<span class="text-label-tertiary">Select a branch</span>}
