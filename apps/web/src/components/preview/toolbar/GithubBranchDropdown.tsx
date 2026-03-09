@@ -8,10 +8,6 @@ import { IoLogOutOutline } from "solid-icons/io";
 export default function GithubBranchDropdown() {
     const { selectedRepository, branches, selectedBranch, setSelectedBranch } = useGithub();
 
-    const handleCreateBranchFromCurrent = () => {};
-
-    const handleCreateBranch = () => {};
-
     return (
         <Show when={selectedRepository() !== null}>
             <DropdownMenu placement="bottom-start" gutter={8}>
@@ -75,7 +71,7 @@ export default function GithubBranchDropdown() {
                         </div>
                         <DropdownMenu.Separator class="border-fill-tertiary mx-3" />
                         <div class="flex flex-col gap-0.5 pt-1">
-                            <Show
+                            {/* <Show
                                 when={selectedBranch() !== null && branches()?.length > 0}
                                 fallback={
                                     <DropdownMenu.Item
@@ -90,12 +86,11 @@ export default function GithubBranchDropdown() {
                                     class="data-highlighted:bg-fill-tertiary mx-1 flex cursor-pointer items-center rounded-[10px] px-2.5 py-0.75 pr-6 outline-none"
                                     // onSelect={handleCreateBranch}
                                 >
-                                    {/* TODO: Icon here? */}
                                     <span>
                                         Start a branch from <span class="font-mono">{selectedBranch()?.name}</span>
                                     </span>
                                 </DropdownMenu.Item>
-                            </Show>
+                            </Show> */}
                             <DropdownMenu.Item class="data-highlighted:bg-fill-tertiary text-red mx-1 flex cursor-pointer items-center rounded-[10px] px-2.5 py-0.75 pr-6 outline-none">
                                 <IoLogOutOutline class="mr-0.75 size-4 -translate-x-px" />
                                 Logout
