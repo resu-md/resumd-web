@@ -1,22 +1,64 @@
-import { createContext, useContext, type Accessor, type JSXElement, type Setter } from "solid-js";
+import { createContext, createMemo, createSignal, Show, useContext, type Accessor, type JSXElement } from "solid-js";
+import { useGithub } from "./GithubContext";
+import { makePersisted, storageSync } from "@solid-primitives/storage";
+import type { BranchInformation, RepositoryInformation } from "@resumd/api/types";
+import { GITHUB_WORKSPACE_STORAGE_KEYS } from "@/lib/storage-keys";
+import { createKeyedLocalStorageSignal } from "../../lib/createKeyedLocalStorageSignal";
 
 const GithubResumeContext = createContext<{
-    draftMarkdown: Accessor<string>;
-    setDraftMarkdown: Setter<string>;
-    draftCss: Accessor<string>;
-    setDraftCss: Setter<string>;
-
-    // Reference values to whitch the diff editor can compare markdown/css changes to show the diff
-    sourceMarkdown: Accessor<string>;
-    sourceCss: Accessor<string>;
+    markdown: Accessor<string>;
+    setMarkdown: (value: string) => void;
+    css: Accessor<string>;
+    setCss: (value: string) => void;
 }>();
 
 export function GithubResumeProvider(props: { children?: JSXElement }) {
-    return <GithubResumeContext.Provider value={{}}>{props.children}</GithubResumeContext.Provider>;
+    const { selectedRepository, selectedBranch, remoteMarkdown, remoteCss } = useGithub();
+
+    const markdownKey = createMemo(() => {
+        const repo = selectedRepository();
+        const branch = selectedBranch();
+        if (!repo || !branch) return null;
+
+        return GITHUB_WORKSPACE_STORAGE_KEYS.MARKDOWN(repo.fullName, branch.name);
+    });
+
+    const cssKey = createMemo(() => {
+        const repo = selectedRepository();
+        const branch = selectedBranch();
+        if (!repo || !branch) return null;
+
+        return GITHUB_WORKSPACE_STORAGE_KEYS.CSS(repo.fullName, branch.name);
+    });
+
+    const [markdown, setMarkdown, clearMarkdownDraft] = createKeyedLocalStorageSignal({
+        key: markdownKey,
+        fallback: () => remoteMarkdown() ?? "",
+    });
+
+    const [css, setCss, clearCssDraft] = createKeyedLocalStorageSignal({
+        key: cssKey,
+        fallback: () => remoteCss() ?? "",
+    });
+
+    return (
+        <GithubResumeContext.Provider
+            value={{
+                markdown,
+                setMarkdown,
+                css,
+                setCss,
+                // clearMarkdownDraft,
+                // clearCssDraft,
+            }}
+        >
+            {props.children}
+        </GithubResumeContext.Provider>
+    );
 }
 
-export function useGithubResumeContext() {
+export function useGithubResume() {
     const context = useContext(GithubResumeContext);
-    if (!context) throw new Error("useGithubResumeContext must be used within a GithubResumeProvider");
+    if (!context) throw new Error("useGithubResume must be used within a GithubResumeProvider");
     return context;
 }

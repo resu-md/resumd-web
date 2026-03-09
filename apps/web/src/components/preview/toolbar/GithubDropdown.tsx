@@ -1,39 +1,39 @@
-import { useGithubAuth } from "@/contexts/github/GithubAuthContext";
-import { useGithubRepository } from "@/contexts/github/GithubRepositoryContext";
-import { DropdownMenu } from "@kobalte/core/dropdown-menu";
 import clsx from "clsx";
+import { For, Show } from "solid-js";
+
+import { DropdownMenu } from "@kobalte/core/dropdown-menu";
 import { FiChevronDown, FiGitBranch } from "solid-icons/fi";
 import { IoLogOutOutline } from "solid-icons/io";
 import { RiLogosGithubFill } from "solid-icons/ri";
-import { For, Show } from "solid-js";
+import { useGithub } from "@/contexts/github/GithubContext";
 
 export default function GithubDropdown() {
-    const { user, logout } = useGithubAuth();
+    // const { user, logout } = useGithubAuth();
     const {
+        user,
         repositories,
+        refreshSession,
         selectedRepository,
+        branches,
         selectedBranch,
-        setSelectedRepository,
-        setSelectedBranch,
-        // Remote calls
-        handleManageRepositories,
-        createBranchFromSelected,
-    } = useGithubRepository();
 
-    const selectedRepositoryBranches = () => selectedRepository()?.branches ?? [];
-    const selectedBranchLabel = () => selectedBranch()?.name ?? null;
+        setSelectedBranch,
+        setSelectedRepository,
+    } = useGithub();
+
+    // const selectedBranch = () => selectedBranch()?.name ?? null;
 
     // TODO: Loading state while creating branches
-    const handleCreateBranch = async () => {
-        const newBranchName = window.prompt("Enter a name for the new branch:");
-        if (!newBranchName) return;
-        try {
-            await createBranchFromSelected(newBranchName);
-        } catch (error) {
-            const message = error instanceof Error ? error.message : "Failed to create branch";
-            window.alert(message);
-        }
-    };
+    // const handleCreateBranch = async () => {
+    //     const newBranchName = window.prompt("Enter a name for the new branch:");
+    //     if (!newBranchName) return;
+    //     try {
+    //         await createBranchFromSelected(newBranchName);
+    //     } catch (error) {
+    //         const message = error instanceof Error ? error.message : "Failed to create branch";
+    //         window.alert(message);
+    //     }
+    // };
 
     return (
         <Show when={repositories() !== undefined}>
@@ -43,7 +43,7 @@ export default function GithubDropdown() {
                         <RiLogosGithubFill class="size-5" />
                         <span class="text-label-tertiary px-0.75">/</span>
                         <span>{selectedRepository()?.owner ?? user()?.username}</span>
-                        <Show when={repositories()!.length > 0}>
+                        <Show when={selectedRepository()?.repo}>
                             <span class="text-label-tertiary px-0.75">/</span>
                             <span>{selectedRepository()?.repo}</span>
                         </Show>
@@ -87,13 +87,13 @@ export default function GithubDropdown() {
                             <DropdownMenu.Separator class="border-fill-tertiary mx-4 my-1" />
                             <DropdownMenu.Item
                                 class="data-highlighted:bg-fill-secondary mx-1.5 flex cursor-pointer items-center rounded-lg px-3 py-0.75 pr-10 outline-none"
-                                onSelect={handleManageRepositories}
+                                onSelect={() => void refreshSession()}
                             >
-                                Manage repositories...
+                                Manage repositories
                             </DropdownMenu.Item>
                             <DropdownMenu.Item
                                 class="data-highlighted:bg-fill-secondary data-highlighted:text-red text-red mx-1.5 flex cursor-pointer items-center rounded-lg px-3 py-0.75 outline-none"
-                                onSelect={logout}
+                                // onSelect={logout}
                             >
                                 <IoLogOutOutline class="mr-1 size-4 -translate-x-px" />
                                 Logout
@@ -102,16 +102,13 @@ export default function GithubDropdown() {
                     </DropdownMenu.Portal>
                 </DropdownMenu>
 
-                <Show when={repositories()!.length > 0}>
+                <Show when={selectedRepository() !== null}>
                     <DropdownMenu placement="bottom-start" gutter={8}>
                         <DropdownMenu.Trigger class="proeminent-button text-primary flex h-8.5 items-center gap-1 rounded-full text-sm">
                             <span class="ml-3 flex items-center gap-1.5">
                                 <FiGitBranch class="text-green" />
-                                <Show
-                                    when={selectedRepositoryBranches().length > 0}
-                                    fallback={<span class="text-label-tertiary">No branch</span>}
-                                >
-                                    <span class="font-mono">{selectedBranchLabel()}</span>
+                                <Show when={branches()} fallback={<span class="text-label-tertiary">No branch</span>}>
+                                    <span class="font-mono">{selectedBranch()?.name}</span>
                                 </Show>
                             </span>
                             <FiChevronDown class="text-label-tertiary mr-2 size-5.5 translate-y-px" />
@@ -123,13 +120,13 @@ export default function GithubDropdown() {
                                     "flex flex-col gap-0.5 rounded-xl py-1.5 text-sm outline-none",
                                 )}
                             >
-                                <Show when={selectedRepositoryBranches().length > 0}>
+                                <Show when={branches()}>
                                     <span class="text-label-tertiary mx-1.5 px-3 pt-1 pb-1 text-xs font-semibold">
                                         Branches
                                     </span>
                                 </Show>
                                 <For
-                                    each={selectedRepositoryBranches()}
+                                    each={branches()}
                                     fallback={
                                         <span class="text-label-tertiary mx-1.5 px-3 py-0.75 text-sm">
                                             No branches found
@@ -144,7 +141,7 @@ export default function GithubDropdown() {
                                                     ? "bg-blue/95 text-white"
                                                     : "data-highlighted:bg-fill-secondary",
                                             )}
-                                            onSelect={() => setSelectedBranch(branch.name)}
+                                            onSelect={() => setSelectedBranch(branch)}
                                         >
                                             <span>{branch.name}</span>
                                             {/* TODO: Placeholder for the actuall diff values: */}
@@ -165,10 +162,10 @@ export default function GithubDropdown() {
                                 <DropdownMenu.Separator class="border-fill-tertiary mx-4 my-1" />
                                 <DropdownMenu.Item
                                     class="data-highlighted:bg-fill-secondary mx-1.5 flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-0.75 outline-none"
-                                    onSelect={handleCreateBranch}
+                                    // onSelect={handleCreateBranch}
                                 >
-                                    <Show when={selectedRepositoryBranches().length > 0} fallback="Create branch">
-                                        Create branch from "{selectedBranchLabel()}"
+                                    <Show when={branches()} fallback="Create branch">
+                                        Create branch from "{selectedBranch()?.name}"
                                     </Show>
                                 </DropdownMenu.Item>
                             </DropdownMenu.Content>
