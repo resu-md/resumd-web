@@ -51,6 +51,7 @@ function toRepositoryInformation(
         owner?: { login?: string | null } | null;
         name: string;
         full_name?: string | null;
+        html_url?: string | null;
     },
     installationId: number,
 ): RepositoryInformation {
@@ -59,6 +60,7 @@ function toRepositoryInformation(
         owner,
         repo: repository.name,
         fullName: repository.full_name ?? `${owner}/${repository.name}`,
+        url: repository.html_url ?? `https://github.com/${owner}/${repository.name}`,
         installationId,
     };
 }
@@ -157,11 +159,18 @@ export async function getRepositoryInformation(
         owner,
         repo,
         fullName: repoInfo.data.full_name ?? `${owner}/${repo}`,
+        url: repoInfo.data.html_url ?? `https://github.com/${owner}/${repo}`,
         installationId,
     };
 }
 
-async function getTextFile(octokit: Octokit, owner: string, repo: string, path: string, ref: string): Promise<EditorFile> {
+async function getTextFile(
+    octokit: Octokit,
+    owner: string,
+    repo: string,
+    path: string,
+    ref: string,
+): Promise<EditorFile> {
     const { data } = await octokit.rest.repos.getContent({
         owner,
         repo,
@@ -266,7 +275,9 @@ export async function listInstalledRepos(
     }
 
     return {
-        repositories: Array.from(byFullName.values()).sort((left, right) => left.fullName.localeCompare(right.fullName)),
+        repositories: Array.from(byFullName.values()).sort((left, right) =>
+            left.fullName.localeCompare(right.fullName),
+        ),
         pagination: {
             page,
             perPage,
@@ -336,6 +347,7 @@ export async function loadFilesResponse(
         owner,
         repo,
         fullName: repoInfo.data.full_name ?? `${owner}/${repo}`,
+        url: repoInfo.data.html_url ?? `https://github.com/${owner}/${repo}`,
         installationId,
     };
 

@@ -20,6 +20,7 @@ export type RepositoryInformation = {
     owner: string;
     repo: string;
     fullName: string;
+    url: string;
     installationId: number;
 };
 

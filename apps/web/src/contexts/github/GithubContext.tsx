@@ -47,12 +47,7 @@ export function GithubProvider(props: { children?: JSXElement }) {
                 ? (["github", "bootstrap", repo.owner, repo.repo] as const)
                 : (["github", "bootstrap", null, null] as const),
             queryFn: () =>
-                apiFetch<BootstrapResponse>(
-                    withSearch("/api/bootstrap", {
-                        owner: repo?.owner,
-                        repo: repo?.repo,
-                    }),
-                ),
+                apiFetch<BootstrapResponse>(withSearch("/api/bootstrap", { owner: repo?.owner, repo: repo?.repo })),
             retry: false,
             staleTime: 0,
         };
@@ -136,11 +131,7 @@ export function GithubProvider(props: { children?: JSXElement }) {
                 if (!repo || !branchName) throw new Error("Repository or branch not resolved");
 
                 return apiFetch<FilesResponse>(
-                    withSearch("/api/files", {
-                        owner: repo.owner,
-                        repo: repo.repo,
-                        branch: branchName,
-                    }),
+                    withSearch("/api/files", { owner: repo.owner, repo: repo.repo, branch: branchName }),
                 );
             },
             staleTime: 60_000,
