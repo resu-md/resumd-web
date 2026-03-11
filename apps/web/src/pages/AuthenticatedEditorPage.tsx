@@ -222,17 +222,19 @@ function AuthenticatedEditor() {
                                 leading={
                                     <>
                                         <GithubBranchDropdown />
-                                        <CommitButton
-                                            initialShowDiff={diffMode()}
-                                            hasChanges={hasChanges()}
-                                            isCommitting={isCommitting()}
-                                            diffStats={diffStats()}
-                                            onShowDiffChange={(show) => setDiffMode(show && hasChanges())}
-                                            onUndo={handleUndo}
-                                            onCommit={(message) => {
-                                                void handleCommit(message);
-                                            }}
-                                        />
+                                        <Show when={hasChanges()}>
+                                            <CommitButton
+                                                initialShowDiff={diffMode()}
+                                                hasChanges={hasChanges()}
+                                                isCommitting={isCommitting()}
+                                                diffStats={diffStats()}
+                                                onShowDiffChange={(show) => setDiffMode(show && hasChanges())}
+                                                onUndo={handleUndo}
+                                                onCommit={(message) => {
+                                                    void handleCommit(message);
+                                                }}
+                                            />
+                                        </Show>
                                     </>
                                 }
                                 trailing={
