@@ -1,11 +1,14 @@
 import { Show, createEffect, createMemo, createSignal } from "solid-js";
 import { useParams } from "@solidjs/router";
 import { Title } from "@solidjs/meta";
-import type { SaveRepoResponse } from "@resumd/api/types";
 import { formatDocumentTitle } from "@/lib/document-title";
-import { ApiError, apiFetch, withSearch } from "@/lib/fetch";
+import { getLineDiffStats, type DiffStats } from "@/lib/line-diff";
+import { exportAsPdf } from "@/lib/export-as-pdf";
+import { exportAsZip } from "@/lib/export-as-zip";
+// Contexts
 import { login, useGithub } from "@/contexts/github/GithubContext";
 import { GithubResumeProvider, useGithubResume } from "@/contexts/github/GithubResumeContext";
+// Components
 import MonacoEditor from "@/components/editor/monaco-editor/MonacoEditor";
 import EditorShell from "@/components/editor/EditorShell";
 import ToolbarShell from "@/components/preview/toolbar/ToolbarShell";
@@ -14,7 +17,9 @@ import Preview from "@/components/preview/Preview";
 import MonacoDiffEditor from "@/components/editor/monaco-editor/MonacoDiffEditor";
 import SaveOptionsButton from "@/components/preview/toolbar/SaveOptionsButton";
 import CommitButton from "@/components/preview/toolbar/CommitButton";
-import { getLineDiffStats, type DiffStats } from "@/lib/line-diff";
+
+import type { SaveRepoResponse } from "@resumd/api/types";
+import { ApiError, apiFetch, withSearch } from "@/lib/fetch";
 
 export default function AuthenticatedEditorPage() {
     const params = useParams<{ owner: string; repo: string }>();
@@ -212,7 +217,7 @@ function AuthenticatedEditor() {
                 </EditorShell>
                 <div class="relative flex-1">
                     <Preview markdown={draftMarkdown} css={draftCss}>
-                        {() => (
+                        {(parsedMarkdown, html) => (
                             <ToolbarShell
                                 leading={
                                     <>
@@ -230,11 +235,15 @@ function AuthenticatedEditor() {
                                         />
                                     </>
                                 }
-                                // center={}
                                 trailing={
-                                    <>
-                                        <SaveOptionsButton showing="export" />
-                                    </>
+                                    <SaveOptionsButton
+                                        onDownloadZip={() => exportAsZip(draftMarkdown(), draftCss())}
+                                        onExportPdf={() =>
+                                            exportAsPdf(html(), draftCss(), {
+                                                title: parsedMarkdown().metadata.title,
+                                            })
+                                        }
+                                    />
                                 }
                             />
                         )}

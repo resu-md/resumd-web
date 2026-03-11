@@ -3,15 +3,14 @@ import { useNavigate } from "@solidjs/router";
 import { exportAsPdf } from "@/lib/export-as-pdf";
 import { exportAsZip } from "@/lib/export-as-zip";
 // Contexts
+import { useGithub } from "@/contexts/github/GithubContext";
 import { AnonymousResumeProvider, useAnonymousResume } from "@/contexts/AnonymousResumeContext";
 // Components
 import MonacoEditor from "@/components/editor/monaco-editor/MonacoEditor";
 import EditorShell from "@/components/editor/EditorShell";
 import Preview from "@/components/preview/Preview";
 import ToolbarShell from "@/components/preview/toolbar/ToolbarShell";
-import ExportPdfButton from "@/components/preview/toolbar/ExportPdfButton";
-import SaveDropdown from "@/components/preview/toolbar/SaveDropdown";
-import { useGithub } from "@/contexts/github/GithubContext";
+import SaveOptionsButton from "@/components/preview/toolbar/SaveOptionsButton";
 
 // TODO: Maybe rename? (AnonymousEditorPage?)
 export default function RootPage() {
@@ -73,15 +72,10 @@ function AnonymousEditor() {
                     {(parsedMarkdown, html) => (
                         <ToolbarShell
                             trailing={
-                                <>
-                                    <SaveDropdown
-                                        onDownloadZip={() => exportAsZip(html(), css(), parsedMarkdown().metadata)}
-                                    />
-                                    <ExportPdfButton
-                                        label="Export as PDF"
-                                        onClick={() => exportAsPdf(html(), css(), parsedMarkdown().metadata)}
-                                    />
-                                </>
+                                <SaveOptionsButton
+                                    onDownloadZip={() => exportAsZip(html(), css(), parsedMarkdown().metadata)}
+                                    onExportPdf={() => exportAsPdf(html(), css(), parsedMarkdown().metadata)}
+                                />
                             }
                         />
                     )}
