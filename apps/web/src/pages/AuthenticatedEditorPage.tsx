@@ -22,7 +22,7 @@ import type { SaveRepoResponse } from "@resumd/api/types";
 import { ApiError, apiFetch, withSearch } from "@/lib/fetch";
 
 export default function AuthenticatedEditorPage() {
-    const { user } = useGithub();
+    const { user, selectedRepository, selectedBranch } = useGithub();
 
     createEffect(() => {
         if (user() === null) {
@@ -30,9 +30,17 @@ export default function AuthenticatedEditorPage() {
         }
     });
 
+    const workspace = createMemo(() => {
+        const u = user();
+        const repository = selectedRepository();
+        const branch = selectedBranch();
+        if (!u || !repository || !branch) return null;
+        return { repository, branch };
+    });
+
     return (
         <Show
-            when={user()} // Loads page optimistically
+            when={workspace()}
             fallback={
                 // TODO: Improve visually
                 <main class="text-label-secondary flex h-dvh w-dvw items-center justify-center">
@@ -40,9 +48,11 @@ export default function AuthenticatedEditorPage() {
                 </main>
             }
         >
-            <GithubResumeProvider>
-                <AuthenticatedEditor />
-            </GithubResumeProvider>
+            {(ws) => (
+                <GithubResumeProvider repository={ws().repository} branch={ws().branch}>
+                    <AuthenticatedEditor />
+                </GithubResumeProvider>
+            )}
         </Show>
     );
 }

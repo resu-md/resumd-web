@@ -1,53 +1,109 @@
-import { createContext, createMemo, useContext, type Accessor, type JSXElement } from "solid-js";
+import {
+    batch,
+    createContext,
+    createEffect,
+    createMemo,
+    createRenderEffect,
+    on,
+    useContext,
+    type JSXElement,
+} from "solid-js";
+import { createStore } from "solid-js/store";
 import { useGithub } from "./GithubContext";
-import { GITHUB_WORKSPACE_STORAGE_KEYS } from "@/lib/storage-keys";
-import { createKeyedLocalStorageSignal } from "../../lib/createKeyedLocalStorageSignal";
+import type { BranchInformation, RepositoryInformation } from "@resumd/api/types";
 
-const GithubResumeContext = createContext<{
-    markdown: Accessor<string>;
-    setMarkdown: (value: string) => void;
-    css: Accessor<string>;
-    setCss: (value: string) => void;
-}>();
+type ResumeDoc = {
+    markdown: string;
+    css: string;
+};
 
-export function GithubResumeProvider(props: { children?: JSXElement }) {
-    const { selectedRepository, selectedBranch, remoteMarkdown, remoteCss } = useGithub();
+type GithubResumeContextValue = {
+    markdown: () => string;
+    setMarkdown: (v: string | ((p: string) => string)) => void;
+    css: () => string;
+    setCss: (v: string | ((p: string) => string)) => void;
+};
 
-    const markdownKey = createMemo(() => {
-        const repo = selectedRepository();
-        const branch = selectedBranch();
-        if (!repo || !branch) return null;
+const GithubResumeContext = createContext<GithubResumeContextValue>();
 
-        return GITHUB_WORKSPACE_STORAGE_KEYS.MARKDOWN(repo.fullName, branch.name);
+export function GithubResumeProvider(props: {
+    children?: JSXElement;
+    repository: RepositoryInformation;
+    branch: BranchInformation;
+}) {
+    const { remoteMarkdown, remoteCss } = useGithub();
+
+    const workspaceKey = createMemo(() => {
+        const repository = props.repository;
+        const branch = props.branch;
+        return `resume:${repository.fullName}:${branch.name}`;
     });
 
-    const cssKey = createMemo(() => {
-        const repo = selectedRepository();
-        const branch = selectedBranch();
-        if (!repo || !branch) return null;
-
-        return GITHUB_WORKSPACE_STORAGE_KEYS.CSS(repo.fullName, branch.name);
+    const [doc, setDoc] = createStore<ResumeDoc>({
+        markdown: "",
+        css: "",
     });
 
-    const [markdown, setMarkdown] = createKeyedLocalStorageSignal({
-        key: markdownKey,
-        fallback: () => remoteMarkdown() ?? "",
-    });
+    const readWorkspace = (key: string | null): ResumeDoc => {
+        if (!key) {
+            return {
+                markdown: remoteMarkdown() ?? "",
+                css: remoteCss() ?? "",
+            };
+        }
 
-    const [css, setCss] = createKeyedLocalStorageSignal({
-        key: cssKey,
-        fallback: () => remoteCss() ?? "",
-    });
+        const raw = localStorage.getItem(key);
+        if (!raw) {
+            return {
+                markdown: remoteMarkdown() ?? "",
+                css: remoteCss() ?? "",
+            };
+        }
+
+        try {
+            const parsed = JSON.parse(raw) as Partial<ResumeDoc>;
+            return {
+                markdown: parsed.markdown ?? remoteMarkdown() ?? "",
+                css: parsed.css ?? remoteCss() ?? "",
+            };
+        } catch {
+            return {
+                markdown: remoteMarkdown() ?? "",
+                css: remoteCss() ?? "",
+            };
+        }
+    };
+
+    // Load the whole workspace atomically when repo/branch changes
+    createRenderEffect(
+        on(workspaceKey, (key) => {
+            const next = readWorkspace(key);
+            batch(() => {
+                setDoc("markdown", next.markdown);
+                setDoc("css", next.css);
+            });
+        }),
+    );
+
+    // Persist the whole workspace atomically
+    createEffect(
+        on(
+            [workspaceKey, () => doc.markdown, () => doc.css],
+            ([key, markdown, css]) => {
+                if (!key) return;
+                localStorage.setItem(key, JSON.stringify({ markdown, css }));
+            },
+            { defer: true },
+        ),
+    );
 
     return (
         <GithubResumeContext.Provider
             value={{
-                markdown,
-                setMarkdown,
-                css,
-                setCss,
-                // clearMarkdownDraft,
-                // clearCssDraft,
+                markdown: () => doc.markdown,
+                setMarkdown: (v) => setDoc("markdown", typeof v === "function" ? v(doc.markdown) : v),
+                css: () => doc.css,
+                setCss: (v) => setDoc("css", typeof v === "function" ? v(doc.css) : v),
             }}
         >
             {props.children}
@@ -57,6 +113,8 @@ export function GithubResumeProvider(props: { children?: JSXElement }) {
 
 export function useGithubResume() {
     const context = useContext(GithubResumeContext);
-    if (!context) throw new Error("useGithubResume must be used within a GithubResumeProvider");
+    if (!context) {
+        throw new Error("useGithubResume must be used within a GithubResumeProvider");
+    }
     return context;
 }
