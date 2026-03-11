@@ -54,9 +54,9 @@ export function GithubResumeProvider(props: {
 }) {
     const { remoteMarkdown, remoteCss } = useGithub();
 
-    const workspaceStorageKey = createMemo(() => {
-        return `resumd.github_workspace.doc:${props.repository.fullName}:${props.branch.name}`;
-    });
+    const workspaceStorageKey = createMemo(() =>
+        GITHUB_WORKSPACE_STORAGE_KEYS.WORKSPACE(props.repository.fullName, props.branch.name),
+    );
 
     const getRemoteDoc = (): ResumeDoc => ({
         markdown: remoteMarkdown() ?? "",
