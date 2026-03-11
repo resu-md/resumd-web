@@ -56,14 +56,11 @@ export default function CommitButton(props: {
             >
                 {props.isCommitting ? "Committing..." : "Commit"}
             </button>
-            <button class="h-full pr-3.25 pl-2.25 font-mono text-sm tabular-nums transition-[margin]">
+            <div class="h-full pr-3.25 pl-2.25 font-mono text-sm tabular-nums transition-[margin]">
                 <span class="text-[#62BA46]">+{props.diffStats.added}</span>
                 <span class="text-red ml-0.75">-{props.diffStats.removed}</span>
-            </button>
-            <div
-                class="ease flex h-full w-0 items-center justify-start overflow-hidden rounded-r-full transition-[width] delay-100 group-hover/commit-button:w-auto data-[open=true]:w-auto"
-                data-open={showDiff()}
-            >
+            </div>
+            <div class="ease flex h-7.75 w-0 items-center justify-start overflow-hidden rounded-r-full transition-[width] delay-100 group-hover/commit-button:w-auto data-[open=true]:w-auto">
                 <div class="bg-separator h-4 w-px shrink-0" />
                 <button
                     class="hover:bg-fill-quaternary active:bg-fill-secondary text-label-secondary flex h-full shrink-0 items-center gap-1 text-sm"
