@@ -2,6 +2,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&display=swap");
 
 @import "tailwindcss";
+@import "./styles/hit-area.css";
 
 body {
     color: var(--ios-label-primary);
@@ -72,6 +73,9 @@ body {
     --shadow-secondary: var(--shadow-secondary);
     --shadow-tertiary: var(--shadow-tertiary);
     --shadow-proeminent: var(--shadow-proeminent);
+    --shadow-proeminent2:
+        inset 0 -1px 2px 0 rgba(255, 255, 255, 0.5), inset 0 1px 2px 0 rgba(0, 0, 0, 0.3),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.8), 0 0 0 0 rgba(0, 0, 0, 0.1);
 }
 
 :root {
@@ -129,7 +133,7 @@ body {
     --shadow-primary: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 0 20px -1px rgba(0, 0, 0, 0.08);
     --shadow-secondary: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 0 20px -1px rgba(0, 0, 0, 0.08);
     --shadow-tertiary: 0 0 0.5px 0.5px rgba(0, 0, 0, 0.1), 0 1px 15px -2px rgba(0, 0, 0, 0.12);
-    --shadow-proeminent: inset 1px 1px 0 0 #fff, 0 0 0 1px rgba(0, 0, 0, 0.12);
+    --shadow-proeminent: inset 0 1px 0 0 white, 0 0 0 1px rgba(0, 0, 0, 0.12);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -212,6 +216,7 @@ button {
     box-shadow: var(--shadow-proeminent);
     outline-offset: 2px;
 }
+
 @media (prefers-color-scheme: dark) {
     .proeminent-button {
         /* background: linear-gradient(180deg, rgba(40, 40, 40, 0.75) 0%, rgba(20, 20, 20, 0.75) 50%, rgba(30, 30, 30, 0.75) 100%); */
@@ -228,4 +233,54 @@ button {
     to {
         opacity: 1;
     }
+}
+
+/* blue */
+
+.button-blue {
+    /* background-image: linear-gradient(#77adf5, #598fef); */
+    background-image: linear-gradient(#48a0ff, #0b7dff);
+    border: 1px solid #0077cc;
+    box-shadow: inset 0 1.5px 0 -0.25px rgba(255, 255, 255, 0.4);
+    /* inset 0 -2px 0 -0.25px rgba(255, 255, 255, 0.1); */
+
+    box-sizing: border-box;
+    color: #ffffff;
+}
+
+.button-blue:active {
+    background-image: linear-gradient(#2b8fff, #0b7dff);
+    box-shadow: inset 0 1.5px 0 -0.25px rgba(255, 255, 255, 0.2);
+    /* border-color: #1482d0; */
+    outline: none;
+}
+
+.button-blue:focus-visible {
+    /* box-shadow: rgba(131, 192, 253, 0.5) 0 0 0 3px; */
+    /* outline: none; */
+    outline-style: solid;
+    outline-width: 2px;
+    outline-offset: 3px;
+}
+
+/* green */
+
+.button-green {
+    background-image: linear-gradient(#34c759, #28a745);
+    border: 1px solid #28a745;
+    box-shadow: inset 0 1.5px 0 -0.25px rgba(255, 255, 255, 0.4);
+    box-sizing: border-box;
+    color: #ffffff;
+}
+
+.button-green:active {
+    background-image: linear-gradient(#2bb44d, #28a745);
+    box-shadow: inset 0 1.5px 0 -0.25px rgba(255, 255, 255, 0.2);
+    outline: none;
+}
+
+.button-green:focus-visible {
+    outline-style: solid;
+    outline-width: 2px;
+    outline-offset: 3px;
 }
