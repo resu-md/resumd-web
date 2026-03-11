@@ -1,96 +1,173 @@
-import { For, Show } from "solid-js";
-import { useNavigate } from "@solidjs/router";
+import { createEffect, createMemo, For, Show } from "solid-js";
 import { Title } from "@solidjs/meta";
-import { useQuery } from "@tanstack/solid-query";
-import type { RepositoriesResponse } from "@resumd/api/types";
-import { apiFetch, ApiError } from "@/lib/fetch";
 import { formatDocumentTitle } from "@/lib/document-title";
-import { logout, useGithub } from "@/contexts/github/GithubContext";
+// Contexts
+import { login, useGithub } from "@/contexts/github/GithubContext";
+// Components
+import { useNavigate } from "@solidjs/router";
+import { FiChevronRight, FiExternalLink } from "solid-icons/fi";
+import { IoLogOutOutline } from "solid-icons/io";
+
+import { apiFetch } from "@/lib/fetch";
+import type { RepositoriesResponse } from "@resumd/api/types";
+import { useQuery } from "@tanstack/solid-query";
 
 export default function ManageRepositoriesPage() {
-    const navigate = useNavigate();
     const { user } = useGithub();
 
+    createEffect(() => {
+        if (user() === null) {
+            login("/manage");
+        }
+    });
+
+    return (
+        <Show
+            when={user()}
+            fallback={
+                // TODO: Improve visually
+                <main class="text-label-secondary flex h-dvh w-dvw items-center justify-center">
+                    Logging in to GitHub...
+                </main>
+            }
+        >
+            <ManageRepositoriesContent />
+        </Show>
+    );
+}
+
+function ManageRepositoriesContent() {
+    const navigate = useNavigate();
+    const { logout } = useGithub();
+
+    // TODO: Move this to a context?
     const repositoriesQuery = useQuery(() => ({
-        queryKey: ["github", "repositories"],
-        enabled: user() !== undefined && user() !== null,
+        queryKey: ["github", "repositories"] as const,
         queryFn: () => apiFetch<RepositoriesResponse>("/api/repositories"),
         retry: false,
-        staleTime: 60_000,
+        staleTime: 0,
     }));
 
-    const repositories = () => repositoriesQuery.data?.repositories.items ?? [];
+    const repositories = createMemo(() => {
+        if (repositoriesQuery.isLoading) return undefined;
+        return repositoriesQuery.data?.repositories.items;
+    });
+
+    createEffect(() => {
+        console.log("repositories():", repositories());
+    });
 
     return (
         <>
-            <Title>{formatDocumentTitle("Repositories")}</Title>
-            <main class="bg-system-secondary flex min-h-dvh w-dvw items-center justify-center p-6">
-                <section class="proeminent-button w-full max-w-2xl rounded-2xl p-6">
-                    <h1 class="text-xl font-semibold">Select a repository</h1>
-                    <p class="text-label-secondary mt-2 text-sm">
-                        Choose a repository that already granted access to the GitHub App.
-                    </p>
-
-                    <Show when={user() === undefined}>
-                        <p class="text-label-secondary mt-6 text-sm">Loading session...</p>
-                    </Show>
-
-                    <Show when={user() !== undefined && user() === null}>
-                        <p class="text-label-secondary mt-6 text-sm">
-                            You are logged out. Open a repository URL to authenticate.
-                        </p>
-                    </Show>
-
+            <Title>{formatDocumentTitle("Manage repositories")}</Title>
+            <main class="bg-system-primary flex min-h-dvh w-dvw items-center justify-center p-2">
+                <div class="mt-13 flex w-100 max-w-100 flex-col">
                     <Show
-                        when={
-                            user() && repositoriesQuery.error instanceof ApiError && repositoriesQuery.error.status !== 401
-                        }
+                        when={repositories() === undefined || repositories()!.length > 0}
+                        fallback={<NoRepositories />}
                     >
-                        <p class="text-red mt-6 text-sm">Failed to load repositories.</p>
-                    </Show>
-
-                    <Show when={user() && repositoriesQuery.isLoading}>
-                        <p class="text-label-secondary mt-6 text-sm">Loading repositories...</p>
-                    </Show>
-
-                    <Show when={user() && !repositoriesQuery.isLoading}>
-                        <div class="mt-6 flex max-h-80 flex-col gap-2 overflow-y-auto pr-1">
-                            <For
-                                each={repositories()}
-                                fallback={<p class="text-label-secondary text-sm">No repositories connected yet.</p>}
-                            >
-                                {(repository) => (
+                        <div class="mx-4 mb-5">
+                            <h1 class="text-label-primary text-left text-2xl">Select a repository</h1>
+                            <p class="text-label-secondary mt-2.5 text-left text-sm leading-relaxed tracking-wide hyphens-auto">
+                                You have granted Resumd access to the repositories bellow. Select one of the
+                                repositories or add/remove repositories by clicking "Manage repositories".
+                            </p>
+                        </div>
+                        {/* <span class="text-label-tertiary mx-4 text-xs font-semibold">Authorized repositories</span> */}
+                        <For
+                            each={repositories()}
+                            fallback={
+                                <div class="px-4 py-3">
+                                    <div class="bg-fill-quaternary inline-block animate-pulse rounded-md text-left font-mono text-transparent select-none">
+                                        username/repository
+                                    </div>
+                                    <br />
+                                    <div class="bg-fill-quaternary mt-1 inline-block animate-pulse rounded-md text-xs text-transparent select-none">
+                                        github.com/repository
+                                    </div>
+                                </div>
+                            }
+                        >
+                            {(repository, index) => (
+                                <>
+                                    <Show when={index() !== 0}>
+                                        <div class="bg-separator mx-4 h-px" />
+                                    </Show>
                                     <button
-                                        class="bg-fill-secondary hover:bg-fill-primary flex items-center justify-between rounded-lg px-3 py-2 text-left text-sm"
+                                        class="hover:bg-fill-quaternary/50 flex items-center justify-between gap-0.5 rounded-2xl px-4 py-3"
                                         onClick={() => navigate(`/${repository.owner}/${repository.repo}`)}
                                     >
-                                        <span class="font-medium">{repository.fullName}</span>
+                                        <div>
+                                            <p class="text-label-primary text-left font-mono">{repository.fullName}</p>
+                                            <a
+                                                class="text-gray-2 mt-1 flex items-center gap-0.5 text-left text-xs hover:underline"
+                                                href={repository.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                {repository.url.replace(/^(?:\w+:)?\/\//i, "")}
+                                                <FiExternalLink class="ml-0.5 inline-block" />
+                                            </a>
+                                        </div>
+                                        <FiChevronRight class="text-label-tertiary" />
                                     </button>
-                                )}
-                            </For>
+                                </>
+                            )}
+                        </For>
+                        <div class="mx-4 mt-5 flex flex-wrap gap-2">
+                            <button
+                                class="proeminent-button grow rounded-full px-4 py-2 text-sm"
+                                onClick={() => {
+                                    window.location.assign("/api/auth/manage");
+                                }}
+                            >
+                                Manage repositories
+                            </button>
+                            <button
+                                class="button-red grow rounded-full px-4 py-2 text-sm opacity-90"
+                                onClick={() => void logout()}
+                            >
+                                <IoLogOutOutline class="mr-1 inline-block -translate-y-px" />
+                                Logout
+                            </button>
                         </div>
                     </Show>
-
-                    <div class="mt-6 flex flex-wrap gap-2">
-                        <button
-                            class="proeminent-button rounded-full px-4 py-2 text-sm"
-                            onClick={() => {
-                                window.location.assign("/api/auth/manage");
-                            }}
-                        >
-                            Manage repositories
-                        </button>
-                        <button
-                            class="bg-fill-secondary hover:bg-fill-primary text-red rounded-full px-4 py-2 text-sm"
-                            onClick={() => {
-                                void logout();
-                            }}
-                        >
-                            Logout
-                        </button>
-                    </div>
-                </section>
+                </div>
             </main>
         </>
+    );
+}
+
+function NoRepositories() {
+    const { logout } = useGithub();
+
+    // TODO: Maybe add user avatar or information to this state, so user can know which account is logged in
+    return (
+        <div class="mx-4">
+            <h1 class="text-label-primary text-left text-2xl">No repositories authorized</h1>
+            <p class="text-label-secondary mt-2.5 text-left text-sm leading-relaxed tracking-wide hyphens-auto">
+                It seems that you haven't authorized Resumd to access any repositories yet. Click the button bellow to
+                authorize a repository.
+            </p>
+            {/* <p class="text-label-secondary mt-2.5 text-left text-sm leading-relaxed tracking-wide hyphens-auto">
+                We recommend creating a new repository for your resumes, but you can also select an existing repository
+                if you prefer. Resumd only needs read/write access to the selected repositories, so it won't have access
+                to any other repositories in your account.
+            </p> */}
+            <div class="mt-5 flex flex-wrap gap-2">
+                <button
+                    class="proeminent-button grow rounded-full px-4 py-2 text-sm"
+                    onClick={() => {
+                        window.location.assign("/api/auth/manage");
+                    }}
+                >
+                    Add repositories
+                </button>
+                <button class="button-red grow rounded-full px-4 py-2 text-sm opacity-90" onClick={() => void logout()}>
+                    <IoLogOutOutline class="mr-1 inline-block -translate-y-px" />
+                    Logout
+                </button>
+            </div>
+        </div>
     );
 }
