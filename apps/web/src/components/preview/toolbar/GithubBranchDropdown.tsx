@@ -1,12 +1,12 @@
 import clsx from "clsx";
 import { For, Show } from "solid-js";
 import { DropdownMenu } from "@kobalte/core/dropdown-menu";
-import { FiChevronDown, FiGitBranch } from "solid-icons/fi";
+import { FiChevronDown, FiGitBranch, FiRefreshCw } from "solid-icons/fi";
 import { useGithub } from "@/contexts/github/GithubContext";
-import { IoLogOutOutline } from "solid-icons/io";
 
 export default function GithubBranchDropdown() {
-    const { selectedRepository, branches, selectedBranch, setSelectedBranch, logout } = useGithub();
+    const { selectedRepository, branches, selectedBranch, isReloadingBranches, reloadBranches, setSelectedBranch } =
+        useGithub();
 
     return (
         <Show when={selectedRepository() !== null}>
@@ -25,13 +25,27 @@ export default function GithubBranchDropdown() {
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Portal>
                     <DropdownMenu.Content class="bg-system-primary/95 proeminent-button flex max-h-[70vh] flex-col rounded-[13px] py-1 text-sm backdrop-blur-lg outline-none">
-                        <div class="mx-1 px-2.5 pt-0.5 pr-6 pb-1">
-                            <span class="text-label-tertiary text-xs font-semibold">
+                        <div class="mx-1 flex items-center justify-between px-2.5 pt-0.5 pr-5 pb-1">
+                            <span class="text-label-tertiary mr-2 text-xs font-semibold">
                                 <a href={selectedRepository()!.url} target="_blank" rel="noopener noreferrer">
                                     {selectedRepository()!.owner}/{selectedRepository()!.repo}
                                 </a>
                                 's branches
                             </span>
+                            <button
+                                type="button"
+                                class="text-label-tertiary hit-area-x-3 hit-area-y-2 hover:text-label-secondary inline-flex items-center justify-center rounded-full transition-colors"
+                                aria-label="Reload branches"
+                                onClick={() => void reloadBranches()}
+                                disabled={isReloadingBranches()}
+                            >
+                                <FiRefreshCw
+                                    class={clsx(
+                                        "size-3 transition-transform duration-300",
+                                        isReloadingBranches() && "animate-spin",
+                                    )}
+                                />
+                            </button>
                         </div>
                         <div class="flex flex-col gap-0.5 overflow-y-auto">
                             <For

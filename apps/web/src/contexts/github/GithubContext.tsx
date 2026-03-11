@@ -16,6 +16,8 @@ const GithubContext = createContext<{
     selectedRepository: Accessor<RepositoryInformation | null>;
     branches: Accessor<BranchInformation[]>;
     selectedBranch: Accessor<BranchInformation | null>;
+    isReloadingBranches: Accessor<boolean>;
+    reloadBranches: () => Promise<void>;
     setSelectedBranch: (branch: BranchInformation) => void;
     remoteMarkdown: Accessor<string | null>;
     remoteMarkdownPath: Accessor<string | null>;
@@ -105,6 +107,8 @@ export function GithubProvider(props: { children?: JSXElement }) {
         return getFallbackBranch(branchList);
     });
 
+    const isReloadingBranches = createMemo(() => bootstrapQuery.isRefetching);
+
     createEffect(() => {
         const branchFromUrl = searchParamsBranch();
         if (!branchFromUrl) return;
@@ -121,6 +125,10 @@ export function GithubProvider(props: { children?: JSXElement }) {
 
     const setSelectedBranch = (branch: BranchInformation) => {
         setSearchParams({ branch: branch.name }, { replace: true });
+    };
+
+    const reloadBranches = async () => {
+        await bootstrapQuery.refetch();
     };
 
     const filesQuery = useQuery(() => {
@@ -168,6 +176,8 @@ export function GithubProvider(props: { children?: JSXElement }) {
                 selectedRepository,
                 branches,
                 selectedBranch,
+                isReloadingBranches,
+                reloadBranches,
                 setSelectedBranch,
                 remoteMarkdown,
                 remoteMarkdownPath,
