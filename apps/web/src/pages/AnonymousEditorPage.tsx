@@ -12,8 +12,7 @@ import Preview from "@/components/preview/Preview";
 import ToolbarShell from "@/components/preview/toolbar/ToolbarShell";
 import SaveOptionsButton from "@/components/preview/toolbar/SaveOptionsButton";
 
-// TODO: Maybe rename? (AnonymousEditorPage?)
-export default function RootPage() {
+export default function AnonymousEditorPage() {
     const { user } = useGithub();
     const navigate = useNavigate();
 
@@ -75,6 +74,9 @@ function AnonymousEditor() {
                                 <SaveOptionsButton
                                     onDownloadZip={() => exportAsZip(html(), css(), parsedMarkdown().metadata)}
                                     onExportPdf={() => exportAsPdf(html(), css(), parsedMarkdown().metadata)}
+                                    onPushToGithub={() => {
+                                        alert("You must be logged in to use this feature.");
+                                    }}
                                 />
                             }
                         />
