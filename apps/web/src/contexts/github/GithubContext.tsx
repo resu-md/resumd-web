@@ -17,7 +17,10 @@ const GithubContext = createContext<{
     selectedBranch: Accessor<BranchInformation | null>;
     setSelectedBranch: (branch: BranchInformation) => void;
     remoteMarkdown: Accessor<string | null>;
+    remoteMarkdownPath: Accessor<string | null>;
     remoteCss: Accessor<string | null>;
+    remoteCssPath: Accessor<string | null>;
+    remoteHeadSha: Accessor<string | undefined>;
 }>();
 
 export function GithubProvider(props: { children?: JSXElement }) {
@@ -139,7 +142,10 @@ export function GithubProvider(props: { children?: JSXElement }) {
     });
 
     const remoteMarkdown = createMemo(() => filesQuery.data?.files.markdown?.content ?? null);
+    const remoteMarkdownPath = createMemo(() => filesQuery.data?.files.markdown?.path ?? null);
     const remoteCss = createMemo(() => filesQuery.data?.files.css?.content ?? null);
+    const remoteCssPath = createMemo(() => filesQuery.data?.files.css?.path ?? null);
+    const remoteHeadSha = createMemo(() => filesQuery.data?.branch.commitSha);
 
     return (
         <GithubContext.Provider
@@ -150,7 +156,10 @@ export function GithubProvider(props: { children?: JSXElement }) {
                 selectedBranch,
                 setSelectedBranch,
                 remoteMarkdown,
+                remoteMarkdownPath,
                 remoteCss,
+                remoteCssPath,
+                remoteHeadSha,
             }}
         >
             {props.children}
@@ -176,5 +185,4 @@ export const login = (owner: string, repo: string, returnTo: string) => {
 
 export const logout = async () => {
     await apiFetch("/api/auth/logout", { method: "POST" });
-    window.location.reload();
 };

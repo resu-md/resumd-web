@@ -5,13 +5,13 @@ export default function ToolbarShell(props: { leading?: JSXElement; trailing?: J
         <div class="pointer-events-none absolute top-4 right-0 left-0">
             <div class="pointer-events-auto flex items-center justify-between gap-3 px-5">
                 <Show when={props.leading}>
-                    <div class="flex flex-[1_1_0%] items-center gap-2">{props.leading}</div>
+                    <div class={/*flex-[1_1_0%]*/ "flex items-center justify-end gap-2"}>{props.leading}</div>
                 </Show>
-                <Show when={props.center}>
+                {/* <Show when={props.center}>
                     <div class="flex items-center">{props.center}</div>
-                </Show>
+                </Show> */}
                 <Show when={props.trailing}>
-                    <div class="flex flex-[1_1_0%] items-center justify-end gap-2 pr-2">{props.trailing}</div>
+                    <div class={/*flex-[1_1_0%]*/ "flex items-center justify-end gap-2"}>{props.trailing}</div>
                 </Show>
             </div>
         </div>

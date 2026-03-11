@@ -2,7 +2,7 @@ import clsx from "clsx";
 import { For, Show } from "solid-js";
 import { DropdownMenu } from "@kobalte/core/dropdown-menu";
 import { FiChevronDown, FiGitBranch } from "solid-icons/fi";
-import { useGithub } from "@/contexts/github/GithubContext";
+import { logout, useGithub } from "@/contexts/github/GithubContext";
 import { IoLogOutOutline } from "solid-icons/io";
 
 export default function GithubBranchDropdown() {
@@ -91,7 +91,10 @@ export default function GithubBranchDropdown() {
                                     </span>
                                 </DropdownMenu.Item>
                             </Show> */}
-                            <DropdownMenu.Item class="data-highlighted:bg-fill-tertiary text-red mx-1 flex cursor-pointer items-center rounded-[10px] px-2.5 py-0.75 pr-6 outline-none">
+                            <DropdownMenu.Item
+                                class="data-highlighted:bg-fill-tertiary text-red mx-1 flex cursor-pointer items-center rounded-[10px] px-2.5 py-0.75 pr-6 outline-none"
+                                onClick={logout}
+                            >
                                 <IoLogOutOutline class="mr-0.75 size-4 -translate-x-px" />
                                 Logout
                             </DropdownMenu.Item>
