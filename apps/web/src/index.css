@@ -240,7 +240,7 @@ button:disabled {
 @media (prefers-color-scheme: dark) {
     .proeminent-button {
         /* background: linear-gradient(180deg, rgba(40, 40, 40, 0.75) 0%, rgba(20, 20, 20, 0.75) 50%, rgba(30, 30, 30, 0.75) 100%); */
-        background: rgba(35, 35, 35, 0.85) 0%;
+        background: rgba(35, 35, 35, 0.95) 0%;
         backdrop-filter: blur(20px);
         box-shadow: var(--shadow-proeminent);
     }
