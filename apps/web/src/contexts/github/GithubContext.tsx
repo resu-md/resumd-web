@@ -9,6 +9,7 @@ import type {
 import { useQuery } from "@tanstack/solid-query";
 import { ApiError, apiFetch, withSearch } from "@/lib/fetch";
 import { useNavigate, useParams, useSearchParams } from "@solidjs/router";
+import queryClient, { clearPersistedQueryClient } from "@/lib/query-client";
 
 const GithubContext = createContext<{
     user: Accessor<GithubUser | null | undefined>;
@@ -21,6 +22,7 @@ const GithubContext = createContext<{
     remoteCss: Accessor<string | null>;
     remoteCssPath: Accessor<string | null>;
     remoteHeadSha: Accessor<string | undefined>;
+    logout: () => Promise<void>;
 }>();
 
 export function GithubProvider(props: { children?: JSXElement }) {
@@ -71,6 +73,7 @@ export function GithubProvider(props: { children?: JSXElement }) {
     const user = createMemo(() => {
         if (bootstrapQuery.isLoading) return undefined;
 
+        // TODO: Needed? Shouldn't it be globally handled by the queryClient?
         const error = bootstrapQuery.error;
         if (error instanceof ApiError) {
             if (error.status === 401) {
@@ -147,6 +150,17 @@ export function GithubProvider(props: { children?: JSXElement }) {
     const remoteCssPath = createMemo(() => filesQuery.data?.files.css?.path ?? null);
     const remoteHeadSha = createMemo(() => filesQuery.data?.branch.commitSha);
 
+    const logout = async () => {
+        await queryClient.cancelQueries();
+        try {
+            navigate("/", { replace: true });
+            clearPersistedQueryClient();
+            await apiFetch("/api/auth/logout", { method: "POST" });
+        } catch (error) {
+            console.error("Logout failed:", error);
+        }
+    };
+
     return (
         <GithubContext.Provider
             value={{
@@ -160,6 +174,7 @@ export function GithubProvider(props: { children?: JSXElement }) {
                 remoteCss,
                 remoteCssPath,
                 remoteHeadSha,
+                logout,
             }}
         >
             {props.children}
@@ -173,16 +188,14 @@ export function useGithub() {
     return context;
 }
 
-export const login = (owner: string, repo: string, returnTo: string) => {
-    const query = new URLSearchParams({
-        owner,
-        repo,
-        returnTo,
-    });
+export const login = (returnTo?: string) => {
+    const normalizedReturnTo = returnTo?.trim();
+    const query = new URLSearchParams();
 
-    window.location.assign(`/api/auth/start?${query.toString()}`);
-};
+    if (normalizedReturnTo) {
+        query.set("returnTo", normalizedReturnTo);
+    }
 
-export const logout = async () => {
-    await apiFetch("/api/auth/logout", { method: "POST" });
+    const loginUrl = query.size > 0 ? `/api/auth/start?${query.toString()}` : "/api/auth/start";
+    window.location.assign(loginUrl);
 };

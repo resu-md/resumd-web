@@ -97,17 +97,9 @@ const app = new Hono<{ Bindings: RuntimeBindings }>();
 
 app.get("/api/auth/start", async (c) => {
     const runtime = getRuntime(c);
-    const owner = c.req.query("owner")?.trim() ?? "";
-    const repo = c.req.query("repo")?.trim() ?? "";
+    const returnTo = safeReturnTo(c.req.query("returnTo"), "/");
 
-    if (!owner || !repo) {
-        return c.json({ error: "owner and repo are required" }, 400);
-    }
-
-    const fallbackReturnTo = `/${owner}/${repo}`;
-    const returnTo = safeReturnTo(c.req.query("returnTo"), fallbackReturnTo);
-
-    const flowContext: AuthFlowContextCookie = { owner, repo, returnTo };
+    const flowContext: AuthFlowContextCookie = { returnTo };
     await setSealedCookie(c, runtime, COOKIE_CTX, flowContext, 60 * 60);
 
     const state = randomState();
@@ -166,14 +158,10 @@ app.get("/api/auth/callback", async (c) => {
     await setSealedCookie(c, runtime, COOKIE_AUTH, auth, 180 * 24 * 60 * 60);
 
     const flowContext = await readSealedCookie<AuthFlowContextCookie>(c, runtime, COOKIE_CTX);
-    if (!flowContext?.owner || !flowContext?.repo) {
-        return c.redirect(runtime.env.APP_ORIGIN, 302);
-    }
+    const returnTo = safeReturnTo(flowContext?.returnTo, "/");
+    clearCookie(c, COOKIE_CTX);
 
-    const authorizeUrl =
-        `/api/auth/start?owner=${encodeURIComponent(flowContext.owner)}` +
-        `&repo=${encodeURIComponent(flowContext.repo)}` +
-        `&returnTo=${encodeURIComponent(flowContext.returnTo ?? "/")}`;
+    const authorizeUrl = `/api/auth/start?returnTo=${encodeURIComponent(returnTo)}`;
 
     return c.redirect(authorizeUrl, 302);
 });

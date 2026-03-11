@@ -1,5 +1,5 @@
 import { Show, createEffect, createMemo, createSignal } from "solid-js";
-import { useParams } from "@solidjs/router";
+import { useNavigate, useParams } from "@solidjs/router";
 import { Title } from "@solidjs/meta";
 import { formatDocumentTitle } from "@/lib/document-title";
 import { getLineDiffStats, type DiffStats } from "@/lib/line-diff";
@@ -22,12 +22,11 @@ import type { SaveRepoResponse } from "@resumd/api/types";
 import { ApiError, apiFetch, withSearch } from "@/lib/fetch";
 
 export default function AuthenticatedEditorPage() {
-    const params = useParams<{ owner: string; repo: string }>();
     const { user } = useGithub();
 
     createEffect(() => {
         if (user() === null) {
-            login(params.owner, params.repo, `${window.location.pathname}${window.location.search}`);
+            login(`${window.location.pathname}${window.location.search}`);
         }
     });
 
@@ -49,6 +48,7 @@ export default function AuthenticatedEditorPage() {
 }
 
 function AuthenticatedEditor() {
+    const navigate = useNavigate();
     const [diffMode, setDiffMode] = createSignal(false);
     const [isCommitting, setIsCommitting] = createSignal(false);
     const [baselineMarkdown, setBaselineMarkdown] = createSignal("");
@@ -63,6 +63,7 @@ function AuthenticatedEditor() {
         remoteHeadSha,
         selectedRepository,
         selectedBranch,
+        logout,
     } = useGithub();
     const {
         markdown: draftMarkdown,
@@ -157,7 +158,7 @@ function AuthenticatedEditor() {
             setDiffMode(false);
         } catch (error) {
             if (error instanceof ApiError && error.status === 401) {
-                login(params.owner, params.repo, `${window.location.pathname}${window.location.search}`);
+                login(`${window.location.pathname}${window.location.search}`);
                 return;
             }
 
@@ -245,6 +246,15 @@ function AuthenticatedEditor() {
                                                 title: parsedMarkdown().metadata.title,
                                             })
                                         }
+                                        onManageRepositories={() => navigate("/manage")}
+                                        onLogout={() => {
+                                            if (
+                                                confirm(
+                                                    "Sign out?\nYour changes will be kept saved in this browser and will be available when you log back in.",
+                                                )
+                                            )
+                                                logout();
+                                        }}
                                     />
                                 }
                             />

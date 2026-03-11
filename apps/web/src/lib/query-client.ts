@@ -106,6 +106,14 @@ export async function restorePersistedQueryClient() {
     await restorePromise;
 }
 
+export function clearPersistedQueryClient() {
+    if (typeof window !== "undefined") {
+        window.localStorage.removeItem(QUERY_CACHE_STORAGE_KEYS.TANSTACK_QUERY);
+    }
+
+    queryClient.clear();
+}
+
 export default queryClient;
 
 declare global {

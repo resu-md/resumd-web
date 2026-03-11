@@ -33,8 +33,6 @@ export type AuthCookie = {
 };
 
 export type AuthFlowContextCookie = {
-    owner: string;
-    repo: string;
     returnTo: string;
 };
 

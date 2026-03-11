@@ -2,11 +2,11 @@ import clsx from "clsx";
 import { For, Show } from "solid-js";
 import { DropdownMenu } from "@kobalte/core/dropdown-menu";
 import { FiChevronDown, FiGitBranch } from "solid-icons/fi";
-import { logout, useGithub } from "@/contexts/github/GithubContext";
+import { useGithub } from "@/contexts/github/GithubContext";
 import { IoLogOutOutline } from "solid-icons/io";
 
 export default function GithubBranchDropdown() {
-    const { selectedRepository, branches, selectedBranch, setSelectedBranch } = useGithub();
+    const { selectedRepository, branches, selectedBranch, setSelectedBranch, logout } = useGithub();
 
     return (
         <Show when={selectedRepository() !== null}>
@@ -24,7 +24,7 @@ export default function GithubBranchDropdown() {
                     <FiChevronDown class="text-label-tertiary mr-2 size-5 translate-y-px" />
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Portal>
-                    <DropdownMenu.Content class="bg-system-primary/95 proeminent-button flex max-h-[70vh] flex-col rounded-[14px] py-1 text-sm backdrop-blur-lg outline-none">
+                    <DropdownMenu.Content class="bg-system-primary/95 proeminent-button flex max-h-[70vh] flex-col rounded-[13px] py-1 text-sm backdrop-blur-lg outline-none">
                         <div class="mx-1 px-2.5 pt-0.5 pr-6 pb-1">
                             <span class="text-label-tertiary text-xs font-semibold">
                                 <a href={selectedRepository()!.url} target="_blank" rel="noopener noreferrer">
@@ -33,7 +33,7 @@ export default function GithubBranchDropdown() {
                                 's branches
                             </span>
                         </div>
-                        <div class="flex flex-col gap-0.5 overflow-y-auto pb-1">
+                        <div class="flex flex-col gap-0.5 overflow-y-auto">
                             <For
                                 each={branches()}
                                 fallback={
@@ -68,36 +68,6 @@ export default function GithubBranchDropdown() {
                                     </DropdownMenu.Item>
                                 )}
                             </For>
-                        </div>
-                        <DropdownMenu.Separator class="border-fill-tertiary mx-3" />
-                        <div class="flex flex-col gap-0.5 pt-1">
-                            {/* <Show
-                                when={selectedBranch() !== null && branches()?.length > 0}
-                                fallback={
-                                    <DropdownMenu.Item
-                                        class="data-highlighted:bg-fill-tertiary mx-1 flex cursor-pointer items-center rounded-[10px] px-2.5 py-0.75 pr-6 outline-none"
-                                        // onSelect={handleCreateBranch}
-                                    >
-                                        Start a new branch
-                                    </DropdownMenu.Item>
-                                }
-                            >
-                                <DropdownMenu.Item
-                                    class="data-highlighted:bg-fill-tertiary mx-1 flex cursor-pointer items-center rounded-[10px] px-2.5 py-0.75 pr-6 outline-none"
-                                    // onSelect={handleCreateBranch}
-                                >
-                                    <span>
-                                        Start a branch from <span class="font-mono">{selectedBranch()?.name}</span>
-                                    </span>
-                                </DropdownMenu.Item>
-                            </Show> */}
-                            <DropdownMenu.Item
-                                class="data-highlighted:bg-fill-tertiary text-red mx-1 flex cursor-pointer items-center rounded-[10px] px-2.5 py-0.75 pr-6 outline-none"
-                                onClick={logout}
-                            >
-                                <IoLogOutOutline class="mr-0.75 size-4 -translate-x-px" />
-                                Logout
-                            </DropdownMenu.Item>
                         </div>
                     </DropdownMenu.Content>
                 </DropdownMenu.Portal>

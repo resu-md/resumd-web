@@ -1,8 +1,15 @@
+import { Show } from "solid-js";
 import { DropdownMenu } from "@kobalte/core/dropdown-menu";
 import { FiChevronDown } from "solid-icons/fi";
-import { IoFolderOpenOutline } from "solid-icons/io";
+import { IoFolderOpenOutline, IoLogoGithub, IoLogOutOutline } from "solid-icons/io";
 
-export default function SaveOptionsButton(props: { onExportPdf: () => void; onDownloadZip: () => void }) {
+export default function SaveOptionsButton(props: {
+    onExportPdf: () => void;
+    onDownloadZip: () => void;
+    onPushToGithub?: () => void;
+    onManageRepositories?: () => void;
+    onLogout?: () => void;
+}) {
     return (
         <div class="save-options-button flex items-center gap-[2px]">
             <button
@@ -16,14 +23,48 @@ export default function SaveOptionsButton(props: { onExportPdf: () => void; onDo
                     <FiChevronDown class="size-5 translate-y-px text-white" />
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Portal>
-                    <DropdownMenu.Content class="proeminent-button flex flex-col gap-1 rounded-[14px] py-1 text-sm backdrop-blur-lg outline-none">
+                    <DropdownMenu.Content class="proeminent-button flex flex-col gap-1 rounded-[13px] py-1 text-sm backdrop-blur-lg outline-none">
+                        <Show when={props.onPushToGithub}>
+                            <DropdownMenu.Item
+                                class="group data-highlighted:bg-fill-tertiary mx-1 flex cursor-pointer items-center gap-2 rounded-[10px] py-0.75 pr-4 pl-1.75 outline-none"
+                                onSelect={props.onPushToGithub}
+                            >
+                                <IoLogoGithub class="text-label-primary size-4" />
+                                Push to Github
+                            </DropdownMenu.Item>
+                        </Show>
                         <DropdownMenu.Item
-                            class="group data-highlighted:bg-fill-tertiary mx-1 flex cursor-pointer items-center gap-1.5 rounded-[10px] px-2.5 py-0.75 pr-4 pl-2 outline-none"
+                            class="group data-highlighted:bg-fill-tertiary mx-1 flex cursor-pointer items-center gap-2 rounded-[10px] py-0.75 pr-4 pl-1.75 outline-none"
                             onSelect={props.onDownloadZip}
                         >
-                            <IoFolderOpenOutline class="text-label-primary mr-0.5 size-3.5" />
+                            <div class="flex w-4 justify-center">
+                                <IoFolderOpenOutline class="text-label-primary size-3.5" />
+                            </div>
                             Download sources as .zip
                         </DropdownMenu.Item>
+                        <Show when={props.onLogout || props.onManageRepositories}>
+                            <DropdownMenu.Separator class="border-separator mx-3" />
+                        </Show>
+                        <Show when={props.onManageRepositories}>
+                            <DropdownMenu.Item
+                                class="group data-highlighted:bg-fill-tertiary mx-1 flex cursor-pointer items-center gap-2 rounded-[10px] py-0.75 pr-4 pl-1.75 outline-none"
+                                onSelect={props.onManageRepositories}
+                            >
+                                <div class="flex w-4 justify-center">
+                                    <IoLogoGithub class="text-label-primary size-3.5" />
+                                </div>
+                                Manage GitHub repositories
+                            </DropdownMenu.Item>
+                        </Show>
+                        <Show when={props.onLogout}>
+                            <DropdownMenu.Item
+                                class="data-highlighted:bg-fill-tertiary text-red mx-1 flex cursor-pointer items-center rounded-[10px] px-2.5 py-0.75 pr-6 outline-none"
+                                onSelect={props.onLogout}
+                            >
+                                <IoLogOutOutline class="mr-0.75 size-4 -translate-x-px" />
+                                Sign out
+                            </DropdownMenu.Item>
+                        </Show>
                     </DropdownMenu.Content>
                 </DropdownMenu.Portal>
             </DropdownMenu>
