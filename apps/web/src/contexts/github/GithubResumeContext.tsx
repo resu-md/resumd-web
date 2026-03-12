@@ -1,41 +1,60 @@
 import { createContext, createMemo, useContext, type Accessor, type JSXElement } from "solid-js";
-import { useGithub } from "./GithubContext";
 import { GITHUB_WORKSPACE_STORAGE_KEYS } from "@/lib/storage-keys";
-import { createKeyedLocalStorageSignal } from "../../lib/createKeyedLocalStorageSignal";
+import { useGithub } from "./GithubContext";
+import { createDraftablePersistedSignal } from "./createDraftablePersistedSignal";
 
-const GithubResumeContext = createContext<{
+type ResumeDoc = {
+    markdown: string;
+    css: string;
+};
+
+type GithubResumeContextValue = {
     markdown: Accessor<string>;
-    setMarkdown: (value: string) => void;
+    setMarkdown: (value: string | ((prev: string) => string)) => void;
     css: Accessor<string>;
-    setCss: (value: string) => void;
-}>();
+    setCss: (value: string | ((prev: string) => string)) => void;
+    clearDraft: () => void;
+};
+
+const GithubResumeContext = createContext<GithubResumeContextValue>();
 
 export function GithubResumeProvider(props: { children?: JSXElement }) {
     const { selectedRepository, selectedBranch, remoteMarkdown, remoteCss } = useGithub();
 
-    const markdownKey = createMemo(() => {
-        const repo = selectedRepository();
-        const branch = selectedBranch();
-        if (!repo || !branch) return null; // null key does not persist
-        return GITHUB_WORKSPACE_STORAGE_KEYS.MARKDOWN(repo.fullName, branch.name);
+    const workspaceStorageKey = createMemo(() =>
+        selectedBranch() && selectedRepository()
+            ? GITHUB_WORKSPACE_STORAGE_KEYS.WORKSPACE(selectedRepository()!.fullName, selectedBranch()!.name)
+            : "",
+    );
+
+    const getRemoteDoc = (): ResumeDoc => ({
+        markdown: remoteMarkdown() ?? "",
+        css: remoteCss() ?? "",
     });
 
-    const cssKey = createMemo(() => {
-        const repo = selectedRepository();
-        const branch = selectedBranch();
-        if (!repo || !branch) return null; // null key does not persist
-        return GITHUB_WORKSPACE_STORAGE_KEYS.CSS(repo.fullName, branch.name);
+    const [doc, setDoc, clearDraft] = createDraftablePersistedSignal<ResumeDoc>({
+        key: workspaceStorageKey,
+        fallback: getRemoteDoc,
     });
 
-    const [markdown, setMarkdown] = createKeyedLocalStorageSignal({
-        key: markdownKey,
-        fallback: () => remoteMarkdown() ?? "",
-    });
+    const markdown = () => doc().markdown;
+    const css = () => doc().css;
 
-    const [css, setCss] = createKeyedLocalStorageSignal({
-        key: cssKey,
-        fallback: () => remoteCss() ?? "",
-    });
+    const setMarkdown = (value: string | ((prev: string) => string)) => {
+        setDoc((prev) => {
+            const nextMarkdown = typeof value === "function" ? value(prev.markdown) : value;
+            if (nextMarkdown === prev.markdown) return prev;
+            return { ...prev, markdown: nextMarkdown };
+        });
+    };
+
+    const setCss = (value: string | ((prev: string) => string)) => {
+        setDoc((prev) => {
+            const nextCss = typeof value === "function" ? value(prev.css) : value;
+            if (nextCss === prev.css) return prev;
+            return { ...prev, css: nextCss };
+        });
+    };
 
     return (
         <GithubResumeContext.Provider
@@ -44,8 +63,7 @@ export function GithubResumeProvider(props: { children?: JSXElement }) {
                 setMarkdown,
                 css,
                 setCss,
-                // clearMarkdownDraft,
-                // clearCssDraft,
+                clearDraft,
             }}
         >
             {props.children}

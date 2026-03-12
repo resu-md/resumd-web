@@ -18,7 +18,8 @@ import MonacoDiffEditor from "@/components/editor/monaco-editor/MonacoDiffEditor
 import SaveOptionsButton from "@/components/preview/toolbar/SaveOptionsButton";
 import CommitButton from "@/components/preview/toolbar/CommitButton";
 
-import type { SaveRepoResponse } from "@resumd/api/types";
+import queryClient from "@/lib/query-client";
+import type { FilesResponse, SaveRepoResponse } from "@resumd/api/types";
 import { ApiError, apiFetch, withSearch } from "@/lib/fetch";
 
 export default function AuthenticatedEditorPage() {
@@ -52,10 +53,6 @@ function AuthenticatedEditor() {
     const navigate = useNavigate();
     const [diffMode, setDiffMode] = createSignal(false);
     const [isCommitting, setIsCommitting] = createSignal(false);
-    const [baselineMarkdown, setBaselineMarkdown] = createSignal("");
-    const [baselineCss, setBaselineCss] = createSignal("");
-    const [baselineHeadSha, setBaselineHeadSha] = createSignal<string | undefined>(undefined);
-    const [baselineWorkspaceKey, setBaselineWorkspaceKey] = createSignal<string | null>(null);
     const params = useParams<{ owner: string; repo: string }>();
     const {
         remoteMarkdown,
@@ -73,6 +70,7 @@ function AuthenticatedEditor() {
         css: draftCss,
         setMarkdown: setDraftMarkdown,
         setCss: setDraftCss,
+        clearDraft,
     } = useGithubResume();
 
     const title = createMemo(() => {
@@ -84,35 +82,14 @@ function AuthenticatedEditor() {
         return formatDocumentTitle(workspaceLabel);
     });
 
-    const branchWorkspaceKey = createMemo(() => {
-        const repository = selectedRepository();
-        const branch = selectedBranch();
-        if (!repository || !branch) return null;
-
-        return `${repository.fullName}:${branch.name}`;
-    });
-
     const isEditorBlocked = createMemo(() => blockEditor() || isCommitting());
 
-    createEffect(() => {
-        const workspaceKey = branchWorkspaceKey();
-        if (!workspaceKey) {
-            setBaselineWorkspaceKey(null);
-            return;
-        }
-        if (blockEditor()) return;
-        if (baselineWorkspaceKey() === workspaceKey) return;
-
-        setBaselineMarkdown(remoteMarkdown() ?? "");
-        setBaselineCss(remoteCss() ?? "");
-        setBaselineHeadSha(remoteHeadSha() ?? selectedBranch()?.commitSha);
-        setBaselineWorkspaceKey(workspaceKey);
-        setDiffMode(false);
-    });
+    const remoteMarkdownValue = createMemo(() => remoteMarkdown() ?? "");
+    const remoteCssValue = createMemo(() => remoteCss() ?? "");
 
     const hasChanges = createMemo(() => {
         if (isEditorBlocked()) return false;
-        return draftMarkdown() !== baselineMarkdown() || draftCss() !== baselineCss();
+        return draftMarkdown() !== remoteMarkdownValue() || draftCss() !== remoteCssValue();
     });
 
     createEffect(() => {
@@ -124,8 +101,8 @@ function AuthenticatedEditor() {
     const diffStats = createMemo<DiffStats>(() => {
         if (!hasChanges()) return { added: 0, removed: 0 };
 
-        const markdownDiff = getLineDiffStats(baselineMarkdown(), draftMarkdown());
-        const cssDiff = getLineDiffStats(baselineCss(), draftCss());
+        const markdownDiff = getLineDiffStats(remoteMarkdownValue(), draftMarkdown());
+        const cssDiff = getLineDiffStats(remoteCssValue(), draftCss());
 
         return {
             added: markdownDiff.added + cssDiff.added,
@@ -135,8 +112,7 @@ function AuthenticatedEditor() {
 
     const handleUndo = () => {
         if (isEditorBlocked()) return;
-        setDraftMarkdown(baselineMarkdown());
-        setDraftCss(baselineCss());
+        clearDraft();
         setDiffMode(false);
     };
 
@@ -159,13 +135,13 @@ function AuthenticatedEditor() {
 
         setIsCommitting(true);
         try {
-            const response = await apiFetch<SaveRepoResponse>(
+            await apiFetch<SaveRepoResponse>(
                 withSearch("/api/save", { owner: repository.owner, repo: repository.repo }),
                 {
                     method: "POST",
                     body: JSON.stringify({
                         targetBranch: branch.name,
-                        expectedHeadSha: baselineHeadSha(),
+                        expectedHeadSha: remoteHeadSha() ?? branch.commitSha,
                         message,
                         files: {
                             markdown: draftMarkdown(),
@@ -177,9 +153,19 @@ function AuthenticatedEditor() {
                 },
             );
 
-            setBaselineMarkdown(draftMarkdown());
-            setBaselineCss(draftCss());
-            setBaselineHeadSha(response.headSha);
+            await queryClient.fetchQuery<FilesResponse>({
+                queryKey: ["files", repository.owner, repository.repo, branch.name],
+                queryFn: () =>
+                    apiFetch<FilesResponse>(
+                        withSearch("/api/files", {
+                            owner: repository.owner,
+                            repo: repository.repo,
+                            branch: branch.name,
+                        }),
+                    ),
+            });
+
+            clearDraft();
             setDiffMode(false);
         } catch (error) {
             if (error instanceof ApiError && error.status === 401) {
@@ -228,13 +214,13 @@ function AuthenticatedEditor() {
                                     {
                                         id: "resume.md",
                                         language: "markdown",
-                                        originalValue: baselineMarkdown(),
+                                        originalValue: remoteMarkdownValue(),
                                         modifiedValue: draftMarkdown(),
                                     },
                                     {
                                         id: "theme.css",
                                         language: "css",
-                                        originalValue: baselineCss(),
+                                        originalValue: remoteCssValue(),
                                         modifiedValue: draftCss(),
                                     },
                                 ]}
