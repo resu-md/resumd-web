@@ -24,6 +24,7 @@ const GithubContext = createContext<{
     remoteCss: Accessor<string | null>;
     remoteCssPath: Accessor<string | null>;
     remoteHeadSha: Accessor<string | undefined>;
+    refetchFiles: () => Promise<void>;
     blockEditor: Accessor<boolean>;
     logout: () => Promise<void>;
 }>();
@@ -194,6 +195,24 @@ export function GithubProvider(props: { children?: JSXElement }) {
     const remoteCssPath = createMemo(() => resolvedFiles()?.data.files.css?.path ?? null);
     const remoteHeadSha = createMemo(() => resolvedFiles()?.data.branch.commitSha);
 
+    const refetchFiles = async () => {
+        const workspace = filesWorkspace();
+        if (!workspace) return;
+
+        await queryClient.fetchQuery<FilesResponse>({
+            queryKey: [...workspace.key],
+            queryFn: () =>
+                apiFetch<FilesResponse>(
+                    withSearch("/api/files", {
+                        owner: workspace.repo.owner,
+                        repo: workspace.repo.repo,
+                        branch: workspace.branchName,
+                    }),
+                ),
+            staleTime: 0,
+        });
+    };
+
     const logout = async () => {
         await queryClient.cancelQueries();
         try {
@@ -220,6 +239,7 @@ export function GithubProvider(props: { children?: JSXElement }) {
                 remoteCss,
                 remoteCssPath,
                 remoteHeadSha,
+                refetchFiles,
                 blockEditor,
                 logout,
             }}

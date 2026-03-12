@@ -18,9 +18,7 @@ import MonacoDiffEditor from "@/components/editor/monaco-editor/MonacoDiffEditor
 import SaveOptionsButton from "@/components/preview/toolbar/SaveOptionsButton";
 import CommitButton from "@/components/preview/toolbar/CommitButton";
 
-import queryClient from "@/lib/query-client";
-import type { FilesResponse, SaveRepoResponse } from "@resumd/api/types";
-import { ApiError, apiFetch, withSearch } from "@/lib/fetch";
+import { ApiError } from "@/lib/fetch";
 
 export default function AuthenticatedEditorPage() {
     const { user } = useGithub();
@@ -52,25 +50,16 @@ export default function AuthenticatedEditorPage() {
 function AuthenticatedEditor() {
     const navigate = useNavigate();
     const [diffMode, setDiffMode] = createSignal(false);
-    const [isCommitting, setIsCommitting] = createSignal(false);
     const params = useParams<{ owner: string; repo: string }>();
-    const {
-        remoteMarkdown,
-        remoteMarkdownPath,
-        remoteCss,
-        remoteCssPath,
-        remoteHeadSha,
-        blockEditor,
-        selectedRepository,
-        selectedBranch,
-        logout,
-    } = useGithub();
+    const { remoteMarkdown, remoteCss, blockEditor, selectedRepository, selectedBranch, logout } = useGithub();
     const {
         markdown: draftMarkdown,
         css: draftCss,
         setMarkdown: setDraftMarkdown,
         setCss: setDraftCss,
         clearDraft,
+        isCommitting,
+        commit,
     } = useGithubResume();
 
     const title = createMemo(() => {
@@ -127,45 +116,10 @@ function AuthenticatedEditor() {
     };
 
     const handleCommit = async (message?: string) => {
-        const repository = selectedRepository();
-        const branch = selectedBranch();
-        if (!repository || !branch || isCommitting()) return;
-        if (isEditorBlocked()) return;
-        if (!hasChanges()) return;
+        if (isEditorBlocked() || !hasChanges()) return;
 
-        setIsCommitting(true);
         try {
-            await apiFetch<SaveRepoResponse>(
-                withSearch("/api/save", { owner: repository.owner, repo: repository.repo }),
-                {
-                    method: "POST",
-                    body: JSON.stringify({
-                        targetBranch: branch.name,
-                        expectedHeadSha: remoteHeadSha() ?? branch.commitSha,
-                        message,
-                        files: {
-                            markdown: draftMarkdown(),
-                            css: draftCss(),
-                            markdownPath: remoteMarkdownPath() ?? "resume.md",
-                            cssPath: remoteCssPath() ?? "resume.css",
-                        },
-                    }),
-                },
-            );
-
-            await queryClient.fetchQuery<FilesResponse>({
-                queryKey: ["files", repository.owner, repository.repo, branch.name],
-                queryFn: () =>
-                    apiFetch<FilesResponse>(
-                        withSearch("/api/files", {
-                            owner: repository.owner,
-                            repo: repository.repo,
-                            branch: branch.name,
-                        }),
-                    ),
-            });
-
-            clearDraft();
+            await commit(message);
             setDiffMode(false);
         } catch (error) {
             if (error instanceof ApiError && error.status === 401) {
@@ -173,10 +127,7 @@ function AuthenticatedEditor() {
                 return;
             }
 
-            const errorMessage = error instanceof ApiError ? error.message : "Failed to commit changes";
-            alert(errorMessage);
-        } finally {
-            setIsCommitting(false);
+            alert(error instanceof ApiError ? error.message : "Failed to commit changes");
         }
     };
 
