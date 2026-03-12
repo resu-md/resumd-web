@@ -47,6 +47,7 @@ export default function AuthenticatedEditorPage() {
     );
 }
 
+// TODO: Needs some good refactoring
 function AuthenticatedEditor() {
     const navigate = useNavigate();
     const [diffMode, setDiffMode] = createSignal(false);
@@ -54,6 +55,7 @@ function AuthenticatedEditor() {
     const [baselineMarkdown, setBaselineMarkdown] = createSignal("");
     const [baselineCss, setBaselineCss] = createSignal("");
     const [baselineHeadSha, setBaselineHeadSha] = createSignal<string | undefined>(undefined);
+    const [baselineWorkspaceKey, setBaselineWorkspaceKey] = createSignal<string | null>(null);
     const params = useParams<{ owner: string; repo: string }>();
     const {
         remoteMarkdown,
@@ -61,6 +63,7 @@ function AuthenticatedEditor() {
         remoteCss,
         remoteCssPath,
         remoteHeadSha,
+        blockEditor,
         selectedRepository,
         selectedBranch,
         logout,
@@ -89,17 +92,28 @@ function AuthenticatedEditor() {
         return `${repository.fullName}:${branch.name}`;
     });
 
+    const isEditorBlocked = createMemo(() => blockEditor() || isCommitting());
+
     createEffect(() => {
         const workspaceKey = branchWorkspaceKey();
-        if (!workspaceKey) return;
+        if (!workspaceKey) {
+            setBaselineWorkspaceKey(null);
+            return;
+        }
+        if (blockEditor()) return;
+        if (baselineWorkspaceKey() === workspaceKey) return;
 
         setBaselineMarkdown(remoteMarkdown() ?? "");
         setBaselineCss(remoteCss() ?? "");
         setBaselineHeadSha(remoteHeadSha() ?? selectedBranch()?.commitSha);
+        setBaselineWorkspaceKey(workspaceKey);
         setDiffMode(false);
     });
 
-    const hasChanges = createMemo(() => draftMarkdown() !== baselineMarkdown() || draftCss() !== baselineCss());
+    const hasChanges = createMemo(() => {
+        if (isEditorBlocked()) return false;
+        return draftMarkdown() !== baselineMarkdown() || draftCss() !== baselineCss();
+    });
 
     createEffect(() => {
         if (!hasChanges() && diffMode()) {
@@ -120,16 +134,27 @@ function AuthenticatedEditor() {
     });
 
     const handleUndo = () => {
-        if (isCommitting()) return;
+        if (isEditorBlocked()) return;
         setDraftMarkdown(baselineMarkdown());
         setDraftCss(baselineCss());
         setDiffMode(false);
+    };
+
+    const handleMarkdownChange = (value: string) => {
+        if (isEditorBlocked()) return;
+        setDraftMarkdown(value);
+    };
+
+    const handleCssChange = (value: string) => {
+        if (isEditorBlocked()) return;
+        setDraftCss(value);
     };
 
     const handleCommit = async (message?: string) => {
         const repository = selectedRepository();
         const branch = selectedBranch();
         if (!repository || !branch || isCommitting()) return;
+        if (isEditorBlocked()) return;
         if (!hasChanges()) return;
 
         setIsCommitting(true);
@@ -179,18 +204,19 @@ function AuthenticatedEditor() {
                             <MonacoEditor
                                 class="size-full"
                                 activeTabId={activeTab()}
+                                readOnly={isEditorBlocked()}
                                 tabs={[
                                     {
                                         id: "resume.md",
                                         language: "markdown",
                                         value: draftMarkdown(),
-                                        onChange: setDraftMarkdown,
+                                        onChange: handleMarkdownChange,
                                     },
                                     {
                                         id: "theme.css",
                                         language: "css",
                                         value: draftCss(),
-                                        onChange: setDraftCss,
+                                        onChange: handleCssChange,
                                     },
                                 ]}
                             />
@@ -223,7 +249,7 @@ function AuthenticatedEditor() {
                                 leading={
                                     <>
                                         <GithubBranchDropdown />
-                                        <Show when={hasChanges()}>
+                                        <Show when={!isEditorBlocked() && hasChanges()}>
                                             <CommitButton
                                                 initialShowDiff={diffMode()}
                                                 hasChanges={hasChanges()}

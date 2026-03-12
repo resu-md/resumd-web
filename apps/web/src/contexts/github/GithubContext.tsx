@@ -24,8 +24,11 @@ const GithubContext = createContext<{
     remoteCss: Accessor<string | null>;
     remoteCssPath: Accessor<string | null>;
     remoteHeadSha: Accessor<string | undefined>;
+    blockEditor: Accessor<boolean>;
     logout: () => Promise<void>;
 }>();
+
+// TODO: Needs a good refactor
 
 export function GithubProvider(props: { children?: JSXElement }) {
     const navigate = useNavigate();
@@ -131,32 +134,65 @@ export function GithubProvider(props: { children?: JSXElement }) {
         await bootstrapQuery.refetch();
     };
 
-    const filesQuery = useQuery(() => {
+    const filesWorkspace = createMemo(() => {
         const repo = selectedRepository();
         const branchName = selectedBranch()?.name;
 
+        if (!repo || !branchName) return null;
+
         return {
-            queryKey:
-                repo && branchName
-                    ? (["files", repo.owner, repo.repo, branchName] as const)
-                    : (["files", null, null, null] as const),
-            enabled: !!repo && !!branchName,
+            key: ["files", repo.owner, repo.repo, branchName] as const,
+            workspaceKey: `${repo.owner}/${repo.repo}:${branchName}`,
+            repo,
+            branchName,
+        };
+    });
+
+    const filesQuery = useQuery(() => {
+        const workspace = filesWorkspace();
+
+        return {
+            queryKey: workspace?.key ?? (["files", null, null, null] as const),
+            enabled: !!workspace,
             queryFn: async () => {
-                if (!repo || !branchName) throw new Error("Repository or branch not resolved");
+                if (!workspace) throw new Error("Repository or branch not resolved");
 
                 return apiFetch<FilesResponse>(
-                    withSearch("/api/files", { owner: repo.owner, repo: repo.repo, branch: branchName }),
+                    withSearch("/api/files", {
+                        owner: workspace.repo.owner,
+                        repo: workspace.repo.repo,
+                        branch: workspace.branchName,
+                    }),
                 );
             },
             staleTime: 60_000,
         };
     });
 
-    const remoteMarkdown = createMemo(() => filesQuery.data?.files.markdown?.content ?? null);
-    const remoteMarkdownPath = createMemo(() => filesQuery.data?.files.markdown?.path ?? null);
-    const remoteCss = createMemo(() => filesQuery.data?.files.css?.content ?? null);
-    const remoteCssPath = createMemo(() => filesQuery.data?.files.css?.path ?? null);
-    const remoteHeadSha = createMemo(() => filesQuery.data?.branch.commitSha);
+    const resolvedFiles = createMemo<{ workspaceKey: string; data: FilesResponse } | null>((previous) => {
+        const workspace = filesWorkspace();
+        if (!workspace) return null;
+
+        const data = filesQuery.data ?? queryClient.getQueryData<FilesResponse>(workspace.key);
+        if (data) {
+            return { workspaceKey: workspace.workspaceKey, data };
+        }
+
+        return previous ?? null;
+    }, null);
+
+    const blockEditor = createMemo(() => {
+        const workspace = filesWorkspace();
+        if (!workspace) return false;
+
+        return resolvedFiles()?.workspaceKey !== workspace.workspaceKey;
+    });
+
+    const remoteMarkdown = createMemo(() => resolvedFiles()?.data.files.markdown?.content ?? null);
+    const remoteMarkdownPath = createMemo(() => resolvedFiles()?.data.files.markdown?.path ?? null);
+    const remoteCss = createMemo(() => resolvedFiles()?.data.files.css?.content ?? null);
+    const remoteCssPath = createMemo(() => resolvedFiles()?.data.files.css?.path ?? null);
+    const remoteHeadSha = createMemo(() => resolvedFiles()?.data.branch.commitSha);
 
     const logout = async () => {
         await queryClient.cancelQueries();
@@ -184,6 +220,7 @@ export function GithubProvider(props: { children?: JSXElement }) {
                 remoteCss,
                 remoteCssPath,
                 remoteHeadSha,
+                blockEditor,
                 logout,
             }}
         >

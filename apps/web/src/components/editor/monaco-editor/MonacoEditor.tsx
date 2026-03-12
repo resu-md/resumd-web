@@ -15,7 +15,7 @@ type TabConfig = {
     onChange: (value: string) => void;
 };
 
-export default function MonacoEditor(props: { class?: string; activeTabId: string; tabs: TabConfig[] }) {
+export default function MonacoEditor(props: { class?: string; activeTabId: string; tabs: TabConfig[]; readOnly?: boolean }) {
     const { theme } = useTheme();
 
     let editorContainer: HTMLDivElement | undefined;
@@ -52,6 +52,7 @@ export default function MonacoEditor(props: { class?: string; activeTabId: strin
             wordWrap: "on",
             theme: theme() === "dark" ? THEME_DARK_ID : THEME_LIGHT_ID,
             lineNumbersMinChars: 4,
+            readOnly: !!props.readOnly,
         });
 
         // Listen to content changes
@@ -126,6 +127,11 @@ export default function MonacoEditor(props: { class?: string; activeTabId: strin
 
         ensureThemesRegistered();
         monaco.editor.setTheme(theme() === "dark" ? THEME_DARK_ID : THEME_LIGHT_ID);
+    });
+
+    createEffect(() => {
+        if (!editor) return;
+        editor.updateOptions({ readOnly: !!props.readOnly });
     });
 
     onCleanup(() => {

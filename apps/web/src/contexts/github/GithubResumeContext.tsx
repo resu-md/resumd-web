@@ -16,16 +16,14 @@ export function GithubResumeProvider(props: { children?: JSXElement }) {
     const markdownKey = createMemo(() => {
         const repo = selectedRepository();
         const branch = selectedBranch();
-        if (!repo || !branch) return null;
-
+        if (!repo || !branch) return null; // null key does not persist
         return GITHUB_WORKSPACE_STORAGE_KEYS.MARKDOWN(repo.fullName, branch.name);
     });
 
     const cssKey = createMemo(() => {
         const repo = selectedRepository();
         const branch = selectedBranch();
-        if (!repo || !branch) return null;
-
+        if (!repo || !branch) return null; // null key does not persist
         return GITHUB_WORKSPACE_STORAGE_KEYS.CSS(repo.fullName, branch.name);
     });
 
