@@ -11,8 +11,26 @@ export class ApiError extends Error {
     }
 }
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/+$/, "");
+
+export function apiUrl(path: string): string {
+    if (!API_BASE_URL) {
+        return path;
+    }
+
+    if (path.startsWith("http://") || path.startsWith("https://")) {
+        return path;
+    }
+
+    if (!path.startsWith("/")) {
+        return `${API_BASE_URL}/${path}`;
+    }
+
+    return `${API_BASE_URL}${path}`;
+}
+
 export async function apiFetch<T>(input: string, init?: RequestInit): Promise<T> {
-    const res = await fetch(input, {
+    const res = await fetch(apiUrl(input), {
         credentials: "include",
         headers: {
             Accept: "application/json",

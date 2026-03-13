@@ -8,7 +8,7 @@ import { useNavigate } from "@solidjs/router";
 import { FiChevronRight, FiExternalLink } from "solid-icons/fi";
 import { IoLogOutOutline } from "solid-icons/io";
 
-import { apiFetch } from "@/lib/fetch";
+import { apiFetch, apiUrl } from "@/lib/fetch";
 import type { RepositoriesResponse } from "@resumd/api/types";
 import { useQuery } from "@tanstack/solid-query";
 
@@ -118,7 +118,7 @@ function ManageRepositoriesContent() {
                             <button
                                 class="proeminent-button grow rounded-full px-4 py-2 text-sm"
                                 onClick={() => {
-                                    window.location.assign("/api/auth/manage");
+                                    window.location.assign(apiUrl("/api/auth/manage"));
                                 }}
                             >
                                 Manage repositories
@@ -158,7 +158,7 @@ function NoRepositories() {
                 <button
                     class="proeminent-button grow rounded-full px-4 py-2 text-sm"
                     onClick={() => {
-                        window.location.assign("/api/auth/manage");
+                        window.location.assign(apiUrl("/api/auth/manage"));
                     }}
                 >
                     Add repositories

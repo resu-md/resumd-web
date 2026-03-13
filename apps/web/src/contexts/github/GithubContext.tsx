@@ -7,7 +7,7 @@ import type {
     FilesResponse,
 } from "@resumd/api/types";
 import { useQuery } from "@tanstack/solid-query";
-import { ApiError, apiFetch, withSearch } from "@/lib/fetch";
+import { ApiError, apiFetch, apiUrl, withSearch } from "@/lib/fetch";
 import { useNavigate, useParams, useSearchParams } from "@solidjs/router";
 import queryClient, { clearPersistedQueryClient } from "@/lib/query-client";
 
@@ -263,6 +263,6 @@ export const login = (returnTo?: string) => {
         query.set("returnTo", normalizedReturnTo);
     }
 
-    const loginUrl = query.size > 0 ? `/api/auth/start?${query.toString()}` : "/api/auth/start";
-    window.location.assign(loginUrl);
+    const loginPath = query.size > 0 ? `/api/auth/start?${query.toString()}` : "/api/auth/start";
+    window.location.assign(apiUrl(loginPath));
 };

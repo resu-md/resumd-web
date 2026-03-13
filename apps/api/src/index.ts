@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { z } from "zod";
 import type { BootstrapResponse, RepositoriesResponse, SaveRepoRequest, SaveRepoResponse } from "./types.js";
 import {
@@ -94,6 +95,15 @@ async function parseJsonBody<T>(c: ApiContext, schema: z.ZodType<T>): Promise<T>
 }
 
 const app = new Hono<{ Bindings: RuntimeBindings }>();
+
+app.use("/api/*", async (c, next) => {
+    const runtime = getRuntime(c);
+    const middleware = cors({
+        origin: runtime.env.APP_ORIGIN,
+        credentials: true,
+    });
+    return middleware(c, next);
+});
 
 app.get("/", (c) => {
     return c.json({ ok: true });

@@ -9,7 +9,7 @@ const require = createRequire(import.meta.url);
 const pagedJsPath = normalizePath(resolve(dirname(require.resolve("pagedjs")), "../dist/paged.js"));
 
 export default defineConfig({
-    base: "/resumd-web/",
+    base: "/",
     plugins: [
         solid(),
         tailwindcss(),
