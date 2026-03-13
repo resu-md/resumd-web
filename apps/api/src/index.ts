@@ -95,6 +95,10 @@ async function parseJsonBody<T>(c: ApiContext, schema: z.ZodType<T>): Promise<T>
 
 const app = new Hono<{ Bindings: RuntimeBindings }>();
 
+app.get("/", (c) => {
+    return c.json({ ok: true });
+});
+
 app.get("/api/auth/start", async (c) => {
     const runtime = getRuntime(c);
     const returnTo = safeReturnTo(c.req.query("returnTo"), "/");

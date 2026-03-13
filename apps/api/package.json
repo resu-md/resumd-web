@@ -5,7 +5,8 @@
     "scripts": {
         "dev": "tsx watch src/dev.ts",
         "build": "tsc -p tsconfig.json",
-        "start": "node dist/dev.js"
+        "start": "node dist/dev.js",
+        "dev:wrangler": "wrangler dev"
     },
     "dependencies": {
         "@hono/node-server": "^1.13.8",
@@ -17,7 +18,9 @@
         "zod": "^3.23.8"
     },
     "devDependencies": {
+        "@types/node": "^25.5.0",
         "tsx": "^4.16.2",
-        "typescript": "^5.5.4"
+        "typescript": "^5.5.4",
+        "wrangler": "^4.72.0"
     }
 }
