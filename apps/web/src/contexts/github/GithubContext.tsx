@@ -29,6 +29,79 @@ const GithubContext = createContext<{
     logout: () => Promise<void>;
 }>();
 
+type LoginGuardState = {
+    returnTo: string;
+    lastAttemptAt: number;
+    blocked: boolean;
+};
+
+export type LoginResult = {
+    redirected: boolean;
+    blocked: boolean;
+    reason?: string;
+};
+
+const LOGIN_GUARD_STORAGE_KEY = "resumd_login_guard";
+const LOGIN_GUARD_TTL_MS = 60_000;
+const LOGIN_GUARD_MESSAGE =
+    "Login keeps failing, so automatic redirects were paused to avoid a loop. Please try again.";
+
+function normalizeReturnToKey(value: string | undefined): string {
+    const normalized = value?.trim();
+    return normalized ? normalized : "/";
+}
+
+function readLoginGuard(): LoginGuardState | null {
+    if (typeof window === "undefined") return null;
+
+    try {
+        const raw = window.sessionStorage.getItem(LOGIN_GUARD_STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw) as LoginGuardState;
+
+        if (
+            typeof parsed !== "object" ||
+            !parsed ||
+            typeof parsed.returnTo !== "string" ||
+            typeof parsed.lastAttemptAt !== "number" ||
+            typeof parsed.blocked !== "boolean"
+        ) {
+            return null;
+        }
+
+        return parsed;
+    } catch {
+        return null;
+    }
+}
+
+function writeLoginGuard(state: LoginGuardState): void {
+    if (typeof window === "undefined") return;
+
+    try {
+        window.sessionStorage.setItem(LOGIN_GUARD_STORAGE_KEY, JSON.stringify(state));
+    } catch {
+        // Ignore storage failures (private mode, etc).
+    }
+}
+
+export function clearLoginGuard(returnTo?: string): void {
+    if (typeof window === "undefined") return;
+
+    if (!returnTo) {
+        window.sessionStorage.removeItem(LOGIN_GUARD_STORAGE_KEY);
+        return;
+    }
+
+    const guard = readLoginGuard();
+    if (!guard) return;
+
+    const key = normalizeReturnToKey(returnTo);
+    if (guard.returnTo === key) {
+        window.sessionStorage.removeItem(LOGIN_GUARD_STORAGE_KEY);
+    }
+}
+
 // TODO: Needs a good refactor
 
 export function GithubProvider(props: { children?: JSXElement }) {
@@ -90,6 +163,13 @@ export function GithubProvider(props: { children?: JSXElement }) {
         }
 
         return bootstrapQuery.data?.user ?? null;
+    });
+
+    createEffect(() => {
+        const resolvedUser = user();
+        if (resolvedUser) {
+            clearLoginGuard();
+        }
     });
 
     const selectedRepository = createMemo(() => bootstrapQuery.data?.selected?.repository ?? null);
@@ -255,7 +335,13 @@ export function useGithub() {
     return context;
 }
 
-export const login = (returnTo?: string) => {
+let loginRedirectInProgress = false;
+
+export const login = (returnTo?: string): LoginResult => {
+    if (loginRedirectInProgress) {
+        return { redirected: false, blocked: false };
+    }
+
     const normalizedReturnTo = returnTo?.trim();
     const query = new URLSearchParams();
 
@@ -264,5 +350,28 @@ export const login = (returnTo?: string) => {
     }
 
     const loginPath = query.size > 0 ? `/api/auth/start?${query.toString()}` : "/api/auth/start";
+
+    const returnToKey = normalizeReturnToKey(normalizedReturnTo);
+    const now = Date.now();
+    const guard = readLoginGuard();
+
+    if (guard && guard.returnTo === returnToKey && guard.blocked) {
+        console.warn("Login redirect blocked", { returnTo: returnToKey, reason: "blocked_state" });
+        return { redirected: false, blocked: true, reason: LOGIN_GUARD_MESSAGE };
+    }
+
+    if (guard && guard.returnTo === returnToKey) {
+        const isRecent = now - guard.lastAttemptAt < LOGIN_GUARD_TTL_MS;
+        if (isRecent) {
+            writeLoginGuard({ ...guard, lastAttemptAt: now, blocked: true });
+            console.warn("Login redirect blocked", { returnTo: returnToKey, reason: "rapid_retry" });
+            return { redirected: false, blocked: true, reason: LOGIN_GUARD_MESSAGE };
+        }
+    }
+
+    writeLoginGuard({ returnTo: returnToKey, lastAttemptAt: now, blocked: false });
+    loginRedirectInProgress = true;
+    console.info("Redirecting to login", { returnTo: returnToKey, url: apiUrl(loginPath) });
     window.location.assign(apiUrl(loginPath));
+    return { redirected: true, blocked: false };
 };

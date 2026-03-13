@@ -6,7 +6,7 @@ import { getLineDiffStats, type DiffStats } from "@/lib/line-diff";
 import { exportAsPdf } from "@/lib/export-as-pdf";
 import { exportAsZip } from "@/lib/export-as-zip";
 // Contexts
-import { login, useGithub } from "@/contexts/github/GithubContext";
+import { clearLoginGuard, login, useGithub } from "@/contexts/github/GithubContext";
 import { GithubResumeProvider, useGithubResume } from "@/contexts/github/GithubResumeContext";
 // Components
 import MonacoEditor from "@/components/editor/monaco-editor/MonacoEditor";
@@ -22,10 +22,29 @@ import { ApiError } from "@/lib/fetch";
 
 export default function AuthenticatedEditorPage() {
     const { user } = useGithub();
+    const navigate = useNavigate();
+    const [loginBlocked, setLoginBlocked] = createSignal<string | null>(null);
+
+    const currentReturnTo = () => `${window.location.pathname}${window.location.search}`;
+
+    const startLogin = () => {
+        const result = login(currentReturnTo());
+        if (result.blocked) {
+            setLoginBlocked(result.reason ?? "Login failed. Please try again.");
+        }
+    };
+
+    const retryLogin = () => {
+        clearLoginGuard(currentReturnTo());
+        setLoginBlocked(null);
+        startLogin();
+    };
 
     createEffect(() => {
+        if (user() !== null) return;
+        if (loginBlocked()) return;
         if (user() === null) {
-            login(`${window.location.pathname}${window.location.search}`);
+            startLogin();
         }
     });
 
@@ -34,8 +53,32 @@ export default function AuthenticatedEditorPage() {
             when={user()} // Loads page optimistically
             fallback={
                 // TODO: Improve visually
-                <main class="text-label-secondary flex h-dvh w-dvw items-center justify-center">
-                    Logging in to GitHub...
+                <main class="text-label-secondary flex h-dvh w-dvw items-center justify-center p-6 text-center">
+                    <Show
+                        when={!loginBlocked()}
+                        fallback={
+                            <div class="flex max-w-md flex-col items-center gap-3">
+                                <h1 class="text-label-primary text-lg">Login failed</h1>
+                                <p class="text-label-secondary text-sm leading-relaxed">{loginBlocked()}</p>
+                                <div class="mt-2 flex flex-wrap justify-center gap-2">
+                                    <button
+                                        class="proeminent-button rounded-full px-4 py-2 text-sm"
+                                        onClick={retryLogin}
+                                    >
+                                        Try login again
+                                    </button>
+                                    <button
+                                        class="button-red rounded-full px-4 py-2 text-sm opacity-90"
+                                        onClick={() => navigate("/", { replace: true })}
+                                    >
+                                        Back to home
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    >
+                        Logging in to GitHub...
+                    </Show>
                 </main>
             }
         >
@@ -123,7 +166,10 @@ function AuthenticatedEditor() {
             setDiffMode(false);
         } catch (error) {
             if (error instanceof ApiError && error.status === 401) {
-                login(`${window.location.pathname}${window.location.search}`);
+                const result = login(`${window.location.pathname}${window.location.search}`);
+                if (result.blocked) {
+                    alert(result.reason ?? "Login failed. Please try again.");
+                }
                 return;
             }
 

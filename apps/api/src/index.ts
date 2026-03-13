@@ -22,10 +22,12 @@ import {
     getRuntime,
     randomState,
     readSealedCookie,
+    resolveRuntimeEnv,
     safeReturnTo,
     setSealedCookie,
     statusOf,
     type ApiContext,
+    type ApiVariables,
     type AuthCookie,
     type AuthFlowContextCookie,
     type CookieState,
@@ -49,6 +51,23 @@ const SaveRepoRequestSchema: z.ZodType<SaveRepoRequest> = z.object({
 const DEFAULT_PAGE = 1;
 const DEFAULT_PER_PAGE = 100;
 const MAX_PER_PAGE = 100;
+
+function logAuthEvent(c: ApiContext, event: string, details: Record<string, unknown> = {}) {
+    const url = new URL(c.req.url);
+    console.log(
+        JSON.stringify({
+            event,
+            requestId: c.get("requestId") ?? "unknown",
+            method: c.req.method,
+            path: url.pathname,
+            origin: c.req.header("origin") ?? null,
+            referer: c.req.header("referer") ?? null,
+            userAgent: c.req.header("user-agent") ?? null,
+            cfRay: c.req.header("cf-ray") ?? null,
+            ...details,
+        }),
+    );
+}
 
 function requireQueryParam(c: ApiContext, key: string): string {
     const value = c.req.query(key)?.trim() ?? "";
@@ -94,9 +113,11 @@ async function parseJsonBody<T>(c: ApiContext, schema: z.ZodType<T>): Promise<T>
     return parsed.data;
 }
 
-const app = new Hono<{ Bindings: RuntimeBindings }>();
+const app = new Hono<{ Bindings: RuntimeBindings; Variables: ApiVariables }>();
 
 app.use("/api/*", async (c, next) => {
+    const requestId = c.req.header("cf-ray") ?? c.req.header("x-request-id") ?? crypto.randomUUID();
+    c.set("requestId", requestId);
     const runtime = getRuntime(c);
     const middleware = cors({
         origin: runtime.env.APP_ORIGIN,
@@ -112,6 +133,15 @@ app.get("/", (c) => {
 app.get("/api/auth/start", async (c) => {
     const runtime = getRuntime(c);
     const returnTo = safeReturnTo(c.req.query("returnTo"), "/");
+    const cookieHeader = c.req.header("cookie") ?? "";
+
+    logAuthEvent(c, "auth_start", {
+        returnTo,
+        hasCookieHeader: !!cookieHeader,
+        hasAuthCookie: cookieHeader.includes(COOKIE_AUTH),
+        hasCtxCookie: cookieHeader.includes(COOKIE_CTX),
+        hasStateCookie: cookieHeader.includes(COOKIE_STATE),
+    });
 
     const flowContext: AuthFlowContextCookie = { returnTo };
     await setSealedCookie(c, runtime, COOKIE_CTX, flowContext, 60 * 60);
@@ -120,14 +150,17 @@ app.get("/api/auth/start", async (c) => {
     await setSealedCookie(c, runtime, COOKIE_STATE, { state } satisfies CookieState, 15 * 60);
 
     const auth = await readSealedCookie<AuthCookie>(c, runtime, COOKIE_AUTH);
+    logAuthEvent(c, "auth_start_cookie_status", { hasAuthToken: !!auth?.token });
     if (!auth?.token) {
         const { url } = runtime.oauthApp.getWebFlowAuthorizationUrl({ state });
+        logAuthEvent(c, "auth_start_redirect", { target: "github_oauth", returnTo });
         return c.redirect(url, 302);
     }
 
     try {
         const userOctokit = await requireUserOctokit(c, runtime);
         await userOctokit.rest.users.getAuthenticated();
+        logAuthEvent(c, "auth_start_redirect", { target: "app", returnTo });
         return c.redirect(`${runtime.env.APP_ORIGIN}${returnTo}`, 302);
     } catch (error) {
         const status = statusOf(error);
@@ -135,9 +168,11 @@ app.get("/api/auth/start", async (c) => {
         if (status === 401) {
             clearCookie(c, COOKIE_AUTH);
             const { url } = runtime.oauthApp.getWebFlowAuthorizationUrl({ state });
+            logAuthEvent(c, "auth_start_redirect", { target: "github_oauth", returnTo, reason: "auth_401" });
             return c.redirect(url, 302);
         }
 
+        logAuthEvent(c, "auth_start_redirect", { target: "app", returnTo, reason: "auth_error" });
         return c.redirect(`${runtime.env.APP_ORIGIN}${returnTo}`, 302);
     }
 });
@@ -148,16 +183,27 @@ app.get("/api/auth/callback", async (c) => {
     const state = c.req.query("state")?.trim() ?? "";
     const oauthError = c.req.query("error")?.trim();
 
+    logAuthEvent(c, "auth_callback", {
+        hasCode: !!code,
+        hasState: !!state,
+        oauthError: oauthError ?? null,
+    });
+
     if (oauthError) {
         return c.text(`GitHub OAuth error: ${oauthError}`, 400);
     }
 
     if (!code || !state) {
+        logAuthEvent(c, "auth_callback_missing_params", { hasCode: !!code, hasState: !!state });
         return c.text("Missing code/state", 400);
     }
 
     const stateCookie = await readSealedCookie<CookieState>(c, runtime, COOKIE_STATE);
     if (!stateCookie?.state || stateCookie.state !== state) {
+        logAuthEvent(c, "auth_callback_state_mismatch", {
+            hasStateCookie: !!stateCookie?.state,
+            stateMatches: stateCookie?.state === state,
+        });
         return c.text("Invalid state", 400);
     }
     clearCookie(c, COOKIE_STATE);
@@ -166,17 +212,21 @@ app.get("/api/auth/callback", async (c) => {
     const auth = ((tokenResult as { authentication?: AuthCookie }).authentication ?? tokenResult) as AuthCookie;
 
     if (!auth?.token) {
+        logAuthEvent(c, "auth_callback_token_failed", { hasToken: !!auth?.token });
         throw new ApiError(500, "Failed to create token");
     }
 
     await setSealedCookie(c, runtime, COOKIE_AUTH, auth, 180 * 24 * 60 * 60);
+    logAuthEvent(c, "auth_callback_token_set", { hasToken: true });
 
     const flowContext = await readSealedCookie<AuthFlowContextCookie>(c, runtime, COOKIE_CTX);
     const returnTo = safeReturnTo(flowContext?.returnTo, "/");
     clearCookie(c, COOKIE_CTX);
+    logAuthEvent(c, "auth_callback_flow_context", { hasContext: !!flowContext?.returnTo, returnTo });
 
     const authorizeUrl = `/api/auth/start?returnTo=${encodeURIComponent(returnTo)}`;
 
+    logAuthEvent(c, "auth_callback_redirect", { target: "auth_start", returnTo });
     return c.redirect(authorizeUrl, 302);
 });
 
@@ -189,6 +239,7 @@ app.post("/api/auth/logout", async (c) => {
 
 app.get("/api/auth/manage", async (c) => {
     const runtime = getRuntime(c);
+    logAuthEvent(c, "auth_manage_redirect", { target: "github_app_install" });
     return c.redirect(runtime.githubInstallationUrl, 302);
 });
 
@@ -196,9 +247,19 @@ app.get("/api/bootstrap", async (c) => {
     const runtime = getRuntime(c);
     const owner = c.req.query("owner")?.trim() ?? "";
     const repo = c.req.query("repo")?.trim() ?? "";
+    const cookieHeader = c.req.header("cookie") ?? "";
+
+    logAuthEvent(c, "bootstrap", {
+        owner,
+        repo,
+        hasCookieHeader: !!cookieHeader,
+        hasAuthCookie: cookieHeader.includes(COOKIE_AUTH),
+    });
 
     const auth = await readSealedCookie<AuthCookie>(c, runtime, COOKIE_AUTH);
+    logAuthEvent(c, "bootstrap_cookie_status", { hasAuthToken: !!auth?.token });
     if (!auth?.token) {
+        logAuthEvent(c, "bootstrap_unauthorized", { reason: "missing_auth_cookie" });
         return c.body(null, 401);
     }
 
@@ -208,6 +269,7 @@ app.get("/api/bootstrap", async (c) => {
     } catch (error) {
         if (statusOf(error) === 401) {
             clearCookie(c, COOKIE_AUTH);
+            logAuthEvent(c, "bootstrap_unauthorized", { reason: "octokit_401" });
             return c.body(null, 401);
         }
 
@@ -236,6 +298,7 @@ app.get("/api/bootstrap", async (c) => {
             const status = statusOf(error);
             if (status === 401) {
                 clearCookie(c, COOKIE_AUTH);
+                logAuthEvent(c, "bootstrap_unauthorized", { reason: "repo_fetch_401" });
                 return c.body(null, 401);
             }
 
@@ -458,5 +521,53 @@ app.onError((error, c) => {
     return c.json({ error: message }, { status: status as any });
 });
 
-export default app;
+type WorkerContext = {
+    waitUntil: (promise: Promise<unknown>) => void;
+    passThroughOnException?: () => void;
+};
+
+let envValidation: { ok: true } | { ok: false; error: unknown } | null = null;
+
+function assertRuntimeEnv(bindings: RuntimeBindings): void {
+    if (envValidation?.ok) return;
+    if (envValidation?.error) {
+        throw envValidation.error;
+    }
+
+    try {
+        resolveRuntimeEnv(bindings);
+        envValidation = { ok: true };
+    } catch (error) {
+        envValidation = { ok: false, error };
+        if (error instanceof z.ZodError) {
+            console.error(
+                JSON.stringify({
+                    event: "runtime_env_invalid",
+                    issues: error.issues.map((issue) => ({
+                        path: issue.path.join("."),
+                        message: issue.message,
+                    })),
+                }),
+            );
+        } else {
+            console.error(
+                JSON.stringify({
+                    event: "runtime_env_invalid",
+                    error: error instanceof Error ? error.message : String(error),
+                }),
+            );
+        }
+        throw error;
+    }
+}
+
+const worker = {
+    fetch: (request: Request, env: RuntimeBindings, ctx: WorkerContext) => {
+        assertRuntimeEnv(env);
+        return app.fetch(request, env, ctx as any);
+    },
+};
+
+export { app };
+export default worker;
 export type * from "./types.js";

@@ -1,8 +1,8 @@
-import { createEffect, createMemo, For, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
 import { Title } from "@solidjs/meta";
 import { formatDocumentTitle } from "@/lib/document-title";
 // Contexts
-import { login, useGithub } from "@/contexts/github/GithubContext";
+import { clearLoginGuard, login, useGithub } from "@/contexts/github/GithubContext";
 // Components
 import { useNavigate } from "@solidjs/router";
 import { FiChevronRight, FiExternalLink } from "solid-icons/fi";
@@ -14,10 +14,27 @@ import { useQuery } from "@tanstack/solid-query";
 
 export default function ManageRepositoriesPage() {
     const { user } = useGithub();
+    const navigate = useNavigate();
+    const [loginBlocked, setLoginBlocked] = createSignal<string | null>(null);
+
+    const startLogin = () => {
+        const result = login("/manage");
+        if (result.blocked) {
+            setLoginBlocked(result.reason ?? "Login failed. Please try again.");
+        }
+    };
+
+    const retryLogin = () => {
+        clearLoginGuard("/manage");
+        setLoginBlocked(null);
+        startLogin();
+    };
 
     createEffect(() => {
+        if (user() !== null) return;
+        if (loginBlocked()) return;
         if (user() === null) {
-            login("/manage");
+            startLogin();
         }
     });
 
@@ -26,8 +43,32 @@ export default function ManageRepositoriesPage() {
             when={user()}
             fallback={
                 // TODO: Improve visually
-                <main class="text-label-secondary flex h-dvh w-dvw items-center justify-center">
-                    Logging in to GitHub...
+                <main class="text-label-secondary flex h-dvh w-dvw items-center justify-center p-6 text-center">
+                    <Show
+                        when={!loginBlocked()}
+                        fallback={
+                            <div class="flex max-w-md flex-col items-center gap-3">
+                                <h1 class="text-label-primary text-lg">Login failed</h1>
+                                <p class="text-label-secondary text-sm leading-relaxed">{loginBlocked()}</p>
+                                <div class="mt-2 flex flex-wrap justify-center gap-2">
+                                    <button
+                                        class="proeminent-button rounded-full px-4 py-2 text-sm"
+                                        onClick={retryLogin}
+                                    >
+                                        Try login again
+                                    </button>
+                                    <button
+                                        class="button-red rounded-full px-4 py-2 text-sm opacity-90"
+                                        onClick={() => navigate("/", { replace: true })}
+                                    >
+                                        Back to home
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    >
+                        Logging in to GitHub...
+                    </Show>
                 </main>
             }
         >

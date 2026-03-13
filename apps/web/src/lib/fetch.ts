@@ -41,6 +41,7 @@ export async function apiFetch<T>(input: string, init?: RequestInit): Promise<T>
     });
 
     if (res.status === 401) {
+        console.warn("API unauthorized", { url: apiUrl(input), status: res.status });
         throw new ApiError(401, "Unauthorized");
     }
 

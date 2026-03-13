@@ -21,7 +21,11 @@ export type RuntimeEnv = z.infer<typeof EnvSchema>;
 
 export type RuntimeBindings = Partial<Record<keyof RuntimeEnv, string>>;
 
-export type ApiContext = Context<{ Bindings: RuntimeBindings }>;
+export type ApiVariables = {
+    requestId: string;
+};
+
+export type ApiContext = Context<{ Bindings: RuntimeBindings; Variables: ApiVariables }>;
 
 export type AuthCookie = {
     token: string;
@@ -42,6 +46,7 @@ export type CookieState = {
 
 export type RuntimeServices = {
     env: RuntimeEnv;
+    backendOrigin: string;
     oauthApp: OAuthApp<any>;
     ghApp: GitHubApp;
     githubInstallationUrl: string;
@@ -79,20 +84,24 @@ function getNodeEnv(): Record<string, string | undefined> {
     return maybeProcess.process?.env ?? {};
 }
 
-function readEnv(c: ApiContext): RuntimeEnv {
+export function resolveRuntimeEnv(bindings: RuntimeBindings): RuntimeEnv {
     const nodeEnv = getNodeEnv();
 
     return EnvSchema.parse({
-        APP_ORIGIN: c.env.APP_ORIGIN ?? nodeEnv.APP_ORIGIN,
-        BACKEND_ORIGIN: c.env.BACKEND_ORIGIN ?? nodeEnv.BACKEND_ORIGIN,
-        GITHUB_CLIENT_ID: c.env.GITHUB_CLIENT_ID ?? nodeEnv.GITHUB_CLIENT_ID,
-        GITHUB_CLIENT_SECRET: c.env.GITHUB_CLIENT_SECRET ?? nodeEnv.GITHUB_CLIENT_SECRET,
-        GITHUB_APP_SLUG: c.env.GITHUB_APP_SLUG ?? nodeEnv.GITHUB_APP_SLUG,
-        GITHUB_APP_ID: c.env.GITHUB_APP_ID ?? nodeEnv.GITHUB_APP_ID,
-        GITHUB_PRIVATE_KEY: c.env.GITHUB_PRIVATE_KEY ?? nodeEnv.GITHUB_PRIVATE_KEY,
-        COOKIE_SECRET: c.env.COOKIE_SECRET ?? nodeEnv.COOKIE_SECRET,
-        NODE_ENV: c.env.NODE_ENV ?? nodeEnv.NODE_ENV,
+        APP_ORIGIN: bindings.APP_ORIGIN ?? nodeEnv.APP_ORIGIN,
+        BACKEND_ORIGIN: bindings.BACKEND_ORIGIN ?? nodeEnv.BACKEND_ORIGIN,
+        GITHUB_CLIENT_ID: bindings.GITHUB_CLIENT_ID ?? nodeEnv.GITHUB_CLIENT_ID,
+        GITHUB_CLIENT_SECRET: bindings.GITHUB_CLIENT_SECRET ?? nodeEnv.GITHUB_CLIENT_SECRET,
+        GITHUB_APP_SLUG: bindings.GITHUB_APP_SLUG ?? nodeEnv.GITHUB_APP_SLUG,
+        GITHUB_APP_ID: bindings.GITHUB_APP_ID ?? nodeEnv.GITHUB_APP_ID,
+        GITHUB_PRIVATE_KEY: bindings.GITHUB_PRIVATE_KEY ?? nodeEnv.GITHUB_PRIVATE_KEY,
+        COOKIE_SECRET: bindings.COOKIE_SECRET ?? nodeEnv.COOKIE_SECRET,
+        NODE_ENV: bindings.NODE_ENV ?? nodeEnv.NODE_ENV,
     });
+}
+
+function readEnv(c: ApiContext): RuntimeEnv {
+    return resolveRuntimeEnv(c.env);
 }
 
 export function getRuntime(c: ApiContext): RuntimeServices {
@@ -130,6 +139,7 @@ export function getRuntime(c: ApiContext): RuntimeServices {
 
     const runtime: RuntimeServices = {
         env,
+        backendOrigin,
         oauthApp,
         ghApp,
         githubInstallationUrl: `https://github.com/apps/${encodeURIComponent(env.GITHUB_APP_SLUG)}/installations/new`,
@@ -248,6 +258,22 @@ async function unsealCookieValue<T>(secret: string, token: string): Promise<T | 
     }
 }
 
+function resolveCookieOptions(runtime: RuntimeServices): { secure: boolean; sameSite: "Lax" | "None" } {
+    const appOrigin = new URL(runtime.env.APP_ORIGIN);
+    const backendOrigin = new URL(runtime.backendOrigin);
+    const isHttps = appOrigin.protocol === "https:" && backendOrigin.protocol === "https:";
+
+    if (!isHttps) {
+        return { secure: false, sameSite: "Lax" };
+    }
+
+    const isSameOrigin = appOrigin.origin === backendOrigin.origin;
+    return {
+        secure: true,
+        sameSite: isSameOrigin ? "Lax" : "None",
+    };
+}
+
 export async function setSealedCookie(
     c: ApiContext,
     runtime: RuntimeServices,
@@ -256,11 +282,25 @@ export async function setSealedCookie(
     maxAgeSeconds?: number,
 ): Promise<void> {
     const sealed = await sealCookieValue(runtime.env.COOKIE_SECRET, value);
+    const { secure, sameSite } = resolveCookieOptions(runtime);
+    const requestId = c.get("requestId") ?? "unknown";
+    console.log(
+        JSON.stringify({
+            event: "cookie_set",
+            requestId,
+            cookie: name,
+            secure,
+            sameSite,
+            maxAgeSeconds: maxAgeSeconds ?? null,
+            appOrigin: runtime.env.APP_ORIGIN,
+            backendOrigin: runtime.backendOrigin,
+        }),
+    );
     setCookie(c, name, sealed, {
         path: "/",
         httpOnly: true,
-        secure: runtime.isProd,
-        sameSite: "Lax",
+        secure,
+        sameSite,
         maxAge: maxAgeSeconds,
     });
 }
