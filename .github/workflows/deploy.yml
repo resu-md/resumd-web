@@ -43,6 +43,8 @@ jobs:
               run: npm run build --workspace=@resumd/web
               env:
                   VITE_API_BASE_URL: https://resumd-api.resumd.workers.dev
+            - name: Add SPA fallback 404
+              run: cp ./apps/web/dist/index.html ./apps/web/dist/404.html
             - name: Setup Pages
               uses: actions/configure-pages@v5
             - name: Upload artifact
